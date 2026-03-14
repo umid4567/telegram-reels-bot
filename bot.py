@@ -18,7 +18,7 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred, {'databaseURL': firebase_url})
 
 TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = 123456789 # BU YERGA O'ZINGIZNING TELEGRAM ID-INGIZNI YOZING!
+ADMIN_ID = 7748146680 # BU YERGA O'ZINGIZNING TELEGRAM ID-INGIZNI YOZING!
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
