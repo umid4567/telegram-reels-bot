@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telegram Mini Reels</title>
+    <style>
+        * { box-sizing: border-box; }
+        body, html { 
+            margin: 0; padding: 0; height: 100%; 
+            overflow: hidden; background: #000; color: white; 
+        }
+        
+        .reels-container {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
+        
+        .reels-container::-webkit-scrollbar { display: none; }
+
+        .video-card {
+            height: 100vh;
+            width: 100vw;
+            scroll-snap-align: start;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-info {
+            position: absolute;
+            bottom: 40px;
+            left: 15px;
+            z-index: 10;
+            font-family: sans-serif;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.8);
+        }
+
+        .user-name { font-weight: bold; font-size: 1.2em; margin-bottom: 5px; }
+        .caption { font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<div class="reels-container">
+    <div class="video-card">
+        <video src="https://v.itv.uz/2023/reels_test1.mp4" loop muted playsinline autoplay></video>
+        <div class="video-info">
+            <div class="user-name">@umid_dev</div>
+            <div class="caption">Mening birinchi Telegram Reels botim! 🚀</div>
+        </div>
+    </div>
+
+    <div class="video-card">
+        <video src="https://v.itv.uz/2023/reels_test2.mp4" loop muted playsinline></video>
+        <div class="video-info">
+            <div class="user-name">@futbol_olami</div>
+            <div class="caption">Futbol emotsiyalari ⚽️</div>
+        </div>
+    </div>
+</div>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand(); 
+    tg.ready();
+
+    const videos = document.querySelectorAll('video');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.play();
+            } else {
+                entry.target.pause();
+            }
+        });
+    }, { threshold: 0.6 });
+
+    videos.forEach(video => {
+        observer.observe(video);
+        video.addEventListener('click', () => {
+            video.muted = !video.muted;
+        });
+    });
+</script>
+</body>
+</html>
+
