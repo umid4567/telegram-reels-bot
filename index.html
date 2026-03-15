@@ -102,9 +102,17 @@
             ref.once('value', s => s.exists() ? ref.remove() : ref.set(true));
         }
 
-        function share(url) {
-            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=UzReels-da ajoyib video!`);
-        }
+        function shareVideo(videoId) {
+    const botUsername = "uzreels_official_bot"; // Botingiz nomi
+    // Telegram bot linki: t.me/bot?start=videoID
+    const deepLink = `https://t.me/${botUsername}?start=${videoId}`;
+    
+    const shareText = encodeURIComponent("UzReels-da ajoyib video, ko'ring! 🔥");
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${shareText}`;
+    
+    tg.openTelegramLink(telegramUrl);
+}
+
 
         function initObserver() {
             const observer = new IntersectionObserver(es => {
