@@ -23,15 +23,16 @@
     </div>
 
     <script>
-        const firebaseConfig = {
+                const firebaseConfig = {
             apiKey: "AIzaSyAHiKEVfIPHiyYlIUjctyeXvnPgKuY4qRk",
             authDomain: "uzreels-bot.firebaseapp.com",
-            databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app"/videos.json,
+            databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/", // Slash / qo'shildi
             projectId: "uzreels-bot",
             storageBucket: "uzreels-bot.firebasestorage.app",
             messagingSenderId: "548439537876",
             appId: "1:548439537876:web:385c3004c225501914a341"
         };
+
 
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
