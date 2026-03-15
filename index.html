@@ -3,78 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels Mini App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>UzReels</title>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
-
     <style>
-        body { margin: 0; padding: 0; background-color: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
-        .reels-container { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
-        .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; background: #000; display: flex; align-items: center; }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        #reels { width: 100%; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; }
+        .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        .status-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 90%; font-size: 14px; color: #aaa; }
+        .msg { padding: 20px; font-size: 14px; color: #ccc; }
     </style>
 </head>
 <body>
 
-    <div class="reels-container" id="reels">
-        <div class="status-msg" id="status">Baza bilan aloqa o'rnatilmoqda...</div>
+    <div id="reels">
+        <div class="msg" id="status">Baza bilan aloqa o'rnatilmoqda...</div>
     </div>
 
     <script>
-                const firebaseConfig = {
+        const firebaseConfig = {
             apiKey: "AIzaSyAHiKEVfIPHiyYlIUjctyeXvnPgKuY4qRk",
             authDomain: "uzreels-bot.firebaseapp.com",
-            databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/", // Slash / qo'shildi
+            databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "uzreels-bot",
             storageBucket: "uzreels-bot.firebasestorage.app",
             messagingSenderId: "548439537876",
             appId: "1:548439537876:web:385c3004c225501914a341"
         };
 
+        try {
+            firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
+            const status = document.getElementById('status');
+            const reels = document.getElementById('reels');
 
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const reelsContainer = document.getElementById('reels');
-        const statusMsg = document.getElementById('status');
+            // Bazadan ma'lumotni olishga urinish
+            database.ref('videos').on('value', (snapshot) => {
+                const data = snapshot.val();
+                console.log("Ma'lumot:", data);
 
-        // Bazani kuzatish
-        database.ref('videos').on('value', (snapshot) => {
-            console.log("Ma'lumot snapshot keldi:", snapshot.val());
-            const data = snapshot.val();
-            
-            if (!data) {
-                statusMsg.innerHTML = "Baza bo'sh! <br><br> Iltimos, botga videoning <b>to'g'ridan-to'g'ri linkini</b> (.mp4) yuboring.";
-                return;
-            }
-
-            reelsContainer.innerHTML = ''; // Ekranni tozalash
-            let count = 0;
-
-            Object.values(data).reverse().forEach(item => {
-                if (item.url && item.url.startsWith('http')) {
-                    count++;
-                    const reelDiv = document.createElement('div');
-                    reelDiv.className = 'reel';
-                    reelDiv.innerHTML = `
-                        <video src="${item.url}" loop playsinline autoplay muted 
-                               onclick="this.muted = !this.muted; this.play()">
-                        </video>
-                    `;
-                    reelsContainer.appendChild(reelDiv);
+                if (!data) {
+                    status.innerHTML = "Baza topildi, lekin ichi bo'sh. <br> Botga .mp4 link yuboring!";
+                    return;
                 }
+
+                reels.innerHTML = '';
+                Object.values(data).reverse().forEach(item => {
+                    if (item.url) {
+                        const div = document.createElement('div');
+                        div.className = 'reel';
+                        div.innerHTML = `<video src="${item.url}" loop playsinline autoplay muted onclick="this.muted=false; this.play()"></video>`;
+                        reels.appendChild(div);
+                    }
+                });
+            }, (error) => {
+                status.innerHTML = "Firebase xatosi: " + error.message;
             });
 
-            if(count === 0) {
-                statusMsg.innerHTML = "Bazada videolar bor, lekin ular link (URL) formatida emas.";
-            }
-        }, (error) => {
-            statusMsg.innerHTML = "Xatolik yuz berdi: " + error.message;
-        });
-
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
+        } catch (e) {
+            document.getElementById('status').innerHTML = "Kodda xato: " + e.message;
+        }
     </script>
 </body>
 </html>
