@@ -6,35 +6,38 @@
     <title>UzReels Fast</title>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
+    
     <style>
+        * { box-sizing: border-box; }
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
         #reels { 
             height: 100vh; 
+            width: 100vw; 
             overflow-y: scroll; 
             scroll-snap-type: y mandatory; 
             scrollbar-width: none; 
         }
         #reels::-webkit-scrollbar { display: none; }
         .reel { 
-            height: 100vh; 
-            width: 100vw; 
+            height: 100vh; width: 100vw; 
             scroll-snap-align: start; 
             position: relative; 
             background: #000;
-            display: flex;
-            align-items: center;
+            display: flex; align-items: center; justify-content: center;
         }
-        video { width: 100%; height: 100%; object-fit: cover; }
+        video { width: 100%; height: 100%; object-fit: cover; background: #000; }
         .info {
             position: absolute; bottom: 40px; left: 15px; right: 15px;
-            z-index: 10; text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
+            z-index: 10; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }
-        .info h3 { margin: 0; font-size: 16px; }
+        .status-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #888; }
     </style>
 </head>
 <body>
 
-    <div id="reels"></div>
+    <div id="reels">
+        <div class="status-msg" id="status">Baza bilan aloqa o'rnatilmoqda...</div>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -50,188 +53,59 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const reelsContainer = document.getElementById('reels');
+        const status = document.getElementById('status');
 
         database.ref('videos').on('value', (snapshot) => {
             const data = snapshot.val();
-            if (!data) return;
+            if (!data) {
+                status.innerHTML = "Hali videolar yo'q.";
+                return;
+            }
 
             reelsContainer.innerHTML = '';
-            Object.values(data).reverse().forEach((item) => {
+            Object.values(data).reverse().forEach(item => {
                 if (item.url && String(item.url).startsWith('http')) {
-                    const div = document.createElement('div');
-                    div.className = 'reel';
-                    div.innerHTML = `
-                        <video src="${item.url}" 
-                               loop 
-                               playsinline 
-                               muted 
-                               preload="auto"> </video>
+                    const reelDiv = document.createElement('div');
+                    reelDiv.className = 'reel';
+                    reelDiv.innerHTML = `
+                        <video src="${item.url}" loop playsinline muted preload="metadata"></video>
                         <div class="info">
-                            <h3>@${item.user || 'admin'}</h3>
+                            <h3>@${item.user || 'foydalanuvchi'}</h3>
                             <p>${item.caption || ''}</p>
                         </div>
                     `;
-                    reelsContainer.appendChild(div);
+                    reelsContainer.appendChild(reelDiv);
                 }
             });
-            initVideoLogic();
+            status.style.display = 'none';
+            setupObserver(); // Aqlli yuklashni ishga tushirish
         });
 
-        function initVideoLogic() {
-            const videos = document.querySelectorAll('video');
-            
-            // Birinchi videoni avtomatik qo'yish
-            if (videos.length > 0) {
-                videos[0].play().catch(() => {});
-            }
-
-            // Scroll bo'lganda boshqarish
-            reelsContainer.onscroll = () => {
-                videos.forEach(video => {
-                    const rect = video.getBoundingClientRect();
-                    const isVisible = rect.top >= -window.innerHeight/2 && rect.bottom <= window.innerHeight * 1.5;
-                    
-                    if (isVisible && rect.top >= 0 && rect.top < window.innerHeight / 2) {
+        function setupObserver() {
+            const options = { threshold: 0.6 }; // Video 60% ko'rinsa ishlaydi
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const video = entry.target;
+                    if (entry.isIntersecting) {
                         video.play();
-                        video.muted = false; // Ko'rinib turgan videoni ovozi bilan qo'yish
+                        video.setAttribute('preload', 'auto'); // Ko'rinayotgan videoni to'liq yuklash
                     } else {
                         video.pause();
+                        // Video ko'rinmay qolsa, resursni tejash (ixtiyoriy)
                     }
                 });
-            };
+            }, options);
 
-            // Ekranga bir marta tekkanda hamma videolarni "uyg'otish"
+            document.querySelectorAll('video').forEach(v => observer.observe(v));
+            
+            // Ekran bosilganda ovozni ochish va play qilishni majburlash
             document.body.onclick = () => {
-                videos.forEach(v => {
-                    v.play().then(() => {
-                        if (!isElementInViewport(v)) v.pause();
-                    }).catch(() => {});
-                });
-            };
-        }
-
-        function isElementInViewport(el) {
-            const rect = el.getBoundingClientRect();
-            return (rect.top >= 0 && rect.bottom <= window.innerHeight);
-        }
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels Fast</title>
-    <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
-    <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
-        #reels { 
-            height: 100vh; 
-            overflow-y: scroll; 
-            scroll-snap-type: y mandatory; 
-            scrollbar-width: none; 
-        }
-        #reels::-webkit-scrollbar { display: none; }
-        .reel { 
-            height: 100vh; 
-            width: 100vw; 
-            scroll-snap-align: start; 
-            position: relative; 
-            background: #000;
-            display: flex;
-            align-items: center;
-        }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        .info {
-            position: absolute; bottom: 40px; left: 15px; right: 15px;
-            z-index: 10; text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
-        }
-        .info h3 { margin: 0; font-size: 16px; }
-    </style>
-</head>
-<body>
-
-    <div id="reels"></div>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyAHiKEVfIPHiyYlIUjctyeXvnPgKuY4qRk",
-            authDomain: "uzreels-bot.firebaseapp.com",
-            databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "uzreels-bot",
-            storageBucket: "uzreels-bot.firebasestorage.app",
-            messagingSenderId: "548439537876",
-            appId: "1:548439537876:web:385c3004c225501914a341"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const reelsContainer = document.getElementById('reels');
-
-        database.ref('videos').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return;
-
-            reelsContainer.innerHTML = '';
-            Object.values(data).reverse().forEach((item) => {
-                if (item.url && String(item.url).startsWith('http')) {
-                    const div = document.createElement('div');
-                    div.className = 'reel';
-                    div.innerHTML = `
-                        <video src="${item.url}" 
-                               loop 
-                               playsinline 
-                               muted 
-                               preload="auto"> </video>
-                        <div class="info">
-                            <h3>@${item.user || 'admin'}</h3>
-                            <p>${item.caption || ''}</p>
-                        </div>
-                    `;
-                    reelsContainer.appendChild(div);
+                const currentVideo = document.querySelector('.reel video:hover') || document.querySelectorAll('video')[0];
+                if(currentVideo) {
+                    currentVideo.muted = false;
+                    currentVideo.play();
                 }
-            });
-            initVideoLogic();
-        });
-
-        function initVideoLogic() {
-            const videos = document.querySelectorAll('video');
-            
-            // Birinchi videoni avtomatik qo'yish
-            if (videos.length > 0) {
-                videos[0].play().catch(() => {});
-            }
-
-            // Scroll bo'lganda boshqarish
-            reelsContainer.onscroll = () => {
-                videos.forEach(video => {
-                    const rect = video.getBoundingClientRect();
-                    const isVisible = rect.top >= -window.innerHeight/2 && rect.bottom <= window.innerHeight * 1.5;
-                    
-                    if (isVisible && rect.top >= 0 && rect.top < window.innerHeight / 2) {
-                        video.play();
-                        video.muted = false; // Ko'rinib turgan videoni ovozi bilan qo'yish
-                    } else {
-                        video.pause();
-                    }
-                });
             };
-
-            // Ekranga bir marta tekkanda hamma videolarni "uyg'otish"
-            document.body.onclick = () => {
-                videos.forEach(v => {
-                    v.play().then(() => {
-                        if (!isElementInViewport(v)) v.pause();
-                    }).catch(() => {});
-                });
-            };
-        }
-
-        function isElementInViewport(el) {
-            const rect = el.getBoundingClientRect();
-            return (rect.top >= 0 && rect.bottom <= window.innerHeight);
         }
     </script>
 </body>
