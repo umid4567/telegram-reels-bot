@@ -12,6 +12,7 @@ from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 
+# Firebase
 cred_path = "/opt/render/project/src/firebase-key.json"
 firebase_url = "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/"
 
@@ -25,41 +26,36 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 async def handle(request):
-    return web.Response(text="UzReels Bot is active!")
+    return web.Response(text="UzReels Shorts Bot is active!")
 
-def get_embed_url(url):
-    # YouTube tekshiruvi
-    if "youtube.com" in url or "youtu.be" in url:
-        video_id = ""
-        if "shorts/" in url:
-            video_id = url.split("shorts/")[1].split("?")[0]
-        elif "v=" in url:
-            video_id = url.split("v=")[1].split("&")[0]
-        elif "youtu.be/" in url:
-            video_id = url.split("youtu.be/")[1].split("?")[0]
-        
-        if video_id:
-            # mute=1 autoplay uchun juda muhim!
-            return f"https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1&loop=1&playlist={video_id}&rel=0"
-            
-    # Instagram tekshiruvi
-    elif "instagram.com" in url:
-        clean_url = url.split("?")[0]
-        if not clean_url.endswith("/"): clean_url += "/"
-        return f"{clean_url}embed/"
-        
-    return url
+def get_youtube_embed(url):
+    video_id = ""
+    if "shorts/" in url:
+        video_id = url.split("shorts/")[1].split("?")[0]
+    elif "v=" in url:
+        video_id = url.split("v=")[1].split("&")[0]
+    elif "youtu.be/" in url:
+        video_id = url.split("youtu.be/")[1].split("?")[0]
+    
+    if video_id:
+        # mute=1 avtomatik ijro uchun shart. playlist=ID takrorlanishi (loop) uchun.
+        return f"https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1&loop=1&playlist={video_id}&rel=0&controls=1"
+    return None
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
-    # O'z Web App linkigizni tekshiring
     web_url = "https://umid4567.github.io/telegram-reels-bot/"
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="🎬 UzReels-ni ochish", web_app=WebAppInfo(url=web_url)))
-    await message.answer(f"Salom! Link yuboring (YouTube/Instagram).", reply_markup=builder.as_markup())
+    builder.row(types.InlineKeyboardButton(text="🎬 Shorts ko'rish", web_app=WebAppInfo(url=web_url)))
+    await message.answer("Salom! YouTube Shorts linkini yuboring.", reply_markup=builder.as_markup())
 
 @dp.message(F.text.contains("http"))
 async def process_link(message: types.Message):
+    embed_url = get_youtube_embed(message.text)
+    if not embed_url:
+        await message.reply("Iltimos, faqat to'g'ri YouTube linkini yuboring.")
+        return
+        
     builder = InlineKeyboardBuilder()
     for cat in ["Futbol", "Qiziqarli", "Texno", "Boshqa"]:
         builder.button(text=cat, callback_data=f"save_{cat}")
@@ -71,11 +67,7 @@ async def save_link(callback: types.CallbackQuery):
     cat = callback.data.split("_")[1]
     original_msg = callback.message.reply_to_message
     
-    if not original_msg:
-        await callback.message.edit_text("❌ Xato: Link topilmadi.")
-        return
-
-    embed_url = get_embed_url(original_msg.text)
+    embed_url = get_youtube_embed(original_msg.text)
     
     try:
         db.reference('videos').push({
@@ -85,7 +77,7 @@ async def save_link(callback: types.CallbackQuery):
             'category': cat,
             'date': datetime.now().strftime("%Y-%m-%d %H:%M")
         })
-        await callback.message.edit_text(f"✅ '{cat}' rukniga saqlandi!")
+        await callback.message.edit_text(f"✅ Shorts '{cat}' rukniga saqlandi!")
     except Exception as e:
         await callback.message.edit_text(f"❌ Xato: {e}")
 
@@ -94,11 +86,7 @@ async def main():
     app.router.add_get('/', handle)
     runner = web.AppRunner(app)
     await runner.setup()
-    
-    port = int(os.getenv("PORT", 10000))
-    site = web.TCPSite(runner, '0.0.0.0', port)
-    
-    # Konfliktni oldini olish uchun
+    site = web.TCPSite(runner, '0.0.0.0', int(os.getenv("PORT", 10000)))
     await bot.delete_webhook(drop_pending_updates=True)
     await site.start()
     await dp.start_polling(bot)
