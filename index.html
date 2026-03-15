@@ -16,14 +16,21 @@
         #reels { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; background: #000; }
         #reels::-webkit-scrollbar { display: none; }
         .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; display: flex; align-items: center; justify-content: center; }
-        video { width: 100%; height: 100%; object-fit: cover; background: #000; }
+        
+        /* Video va Iframe uchun umumiy uslub */
+        .content-wrapper { width: 100%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; background: #000; }
+        video, iframe { width: 100%; height: 100%; border: none; object-fit: cover; }
+        
         .side-bar { position: absolute; right: 10px; bottom: 120px; display: flex; flex-direction: column; gap: 20px; align-items: center; z-index: 10; }
         .btn { background: none; border: none; color: white; display: flex; flex-direction: column; align-items: center; text-shadow: 1px 1px 2px #000; cursor: pointer; }
         .btn svg { width: 32px; height: 32px; fill: white; margin-bottom: 5px; }
         .liked svg { fill: #ff2d55; }
-        .info { position: absolute; bottom: 40px; left: 15px; right: 80px; text-shadow: 1px 1px 3px #000; z-index: 10; }
-        .info h3 a { color: #3498db; text-decoration: none; font-weight: bold; }
+        .info { position: absolute; bottom: 40px; left: 15px; right: 80px; text-shadow: 1px 1px 3px #000; z-index: 10; pointer-events: none; }
+        .info h3 a { color: #3498db; text-decoration: none; font-weight: bold; pointer-events: auto; }
         .info p { font-size: 14px; margin: 5px 0; opacity: 0.9; }
+
+        /* YouTube Shorts pleyerini biroz kattalashtirish (atrofidagi qora joylarni kamaytirish) */
+        .yt-fix { transform: scale(1.05); width: 100%; height: 100%; }
     </style>
 </head>
 <body>
@@ -43,6 +50,7 @@
         const userId = tg.initDataUnsafe.user?.id || "guest";
         tg.expand();
 
+        // Firebase sozlamalari
         const firebaseConfig = {
             apiKey: "AIzaSyAHiKEVfIPHiyYlIUjctyeXvnPgKuY4qRk",
             authDomain: "uzreels-bot.firebaseapp.com",
@@ -74,11 +82,7 @@
                 if (startId) {
                     setTimeout(() => {
                         const el = document.querySelector(`[data-id="${startId}"]`);
-                        if (el) {
-                            el.scrollIntoView();
-                            const v = el.querySelector('video');
-                            if(v) { v.muted = false; v.play(); }
-                        }
+                        if (el) el.scrollIntoView();
                     }, 800);
                 }
                 firstLoad = false;
@@ -88,6 +92,7 @@
         function render() {
             const container = document.getElementById('reels');
             container.innerHTML = '';
+            
             allData.forEach(([id, item]) => {
                 if (currentCat !== "Hammasi" && item.category !== currentCat) return;
                 
@@ -96,12 +101,29 @@
                 const userDisplay = item.user.startsWith('@') 
                     ? `<a href="https://t.me/${item.user.substring(1)}" target="_blank">${item.user}</a>` 
                     : `@${item.user}`;
+
+                let mediaContent = '';
+                
+                // YouTube linkini aniqlash va o'zgartirish
+                if (item.url.includes('youtube.com') || item.url.includes('youtu.be')) {
+                    mediaContent = `<iframe class="yt-fix" src="${item.url}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+                } 
+                // Instagram linkini aniqlash
+                else if (item.url.includes('instagram.com')) {
+                    mediaContent = `<iframe src="${item.url}" scrolling="no" allowtransparency="true" frameborder="0"></iframe>`;
+                }
+                // Oddiy video fayl bo'lsa
+                else {
+                    mediaContent = `<video src="${item.url}" loop playsinline muted preload="metadata" loading="lazy"></video>`;
+                }
                 
                 const div = document.createElement('div');
                 div.className = 'reel';
                 div.dataset.id = id;
                 div.innerHTML = `
-                    <video src="${item.url}" loop playsinline muted preload="metadata" loading="lazy"></video>
+                    <div class="content-wrapper">
+                        ${mediaContent}
+                    </div>
                     <div class="side-bar">
                         <button class="btn ${isLiked}" onclick="like('${id}')">
                             <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
@@ -112,10 +134,11 @@
                             <span>Share</span>
                         </button>
                     </div>
-                    <div class="info"><h3>${userDisplay}</h3><p>${item.caption}</p></div>
+                    <div class="info"><h3>${userDisplay}</h3><p>${item.caption || ''}</p></div>
                 `;
                 container.appendChild(div);
             });
+            
             initObserver();
         }
 
@@ -125,7 +148,7 @@
         }
 
         function shareVideo(id) {
-            const botUser = "uzreels_official_bot"; // Bot username ni tekshiring
+            const botUser = "uzreels_official_bot";
             const link = `https://t.me/${botUser}?start=${id}`;
             tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=UzReels-da ajoyib video ko'ring! 🔥`);
         }
@@ -133,16 +156,17 @@
         function initObserver() {
             const obs = new IntersectionObserver(es => {
                 es.forEach(e => { 
-                    if(e.isIntersecting) {
-                        e.target.play().catch(() => {}); 
-                    } else {
-                        e.target.pause();
+                    const v = e.target.querySelector('video');
+                    if (v) {
+                        if(e.isIntersecting) v.play().catch(() => {}); 
+                        else v.pause();
                     }
                 });
             }, {threshold: 0.6});
-            document.querySelectorAll('video').forEach(v => obs.observe(v));
+            document.querySelectorAll('.reel').forEach(r => obs.observe(r));
         }
 
+        // Ekran bosilganda videoni ovozini yoqish
         document.body.onclick = () => {
             document.querySelectorAll('video').forEach(v => {
                 const r = v.getBoundingClientRect();
