@@ -12,8 +12,8 @@ from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 
-# Firebase
-cred_path = "/opt/render/project/src/firebase-key.json"
+# Firebase sozlamalari
+cred_path = "firebase-key.json" # Fayl asosiy papkada bo'lishi kerak
 firebase_url = "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/"
 
 if not firebase_admin._apps:
@@ -26,7 +26,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 async def handle(request):
-    return web.Response(text="UzReels Shorts Bot is active!")
+    return web.Response(text="Bot is running!")
 
 def get_embed_url(url):
     video_id = ""
@@ -36,8 +36,8 @@ def get_embed_url(url):
         video_id = url.split("v=")[1].split("&")[0]
     
     if video_id:
-        # Loop va Autoplay mukammal ishlashi uchun playlist parametri shart
-        return f"https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1&loop=1&playlist={video_id}&rel=0&controls=1"
+        # Loop va Autoplay uchun embed link
+        return f"https://www.youtube.com/embed/{video_id}?rel=0&iv_load_policy=3&showinfo=0&controls=1&loop=1&playlist={video_id}"
     return None
 
 @dp.message(CommandStart())
@@ -45,12 +45,12 @@ async def start(message: types.Message):
     web_url = "https://umid4567.github.io/telegram-reels-bot/"
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="🎬 Shorts ko'rish", web_app=WebAppInfo(url=web_url)))
-    await message.answer(f"Xush kelibsiz!\nYouTube Shorts linkini yuboring.", reply_markup=builder.as_markup())
+    await message.answer(f"Salom {message.from_user.full_name}!\nYouTube Shorts linkini yuboring.", reply_markup=builder.as_markup())
 
 @dp.message(F.text.contains("http"))
 async def process_link(message: types.Message):
     if "youtube" not in message.text and "youtu.be" not in message.text:
-        await message.reply("Iltimos, faqat YouTube Shorts linkini yuboring!")
+        await message.reply("Iltimos, faqat YouTube linkini yuboring!")
         return
 
     builder = InlineKeyboardBuilder()
@@ -65,10 +65,13 @@ async def save_link(callback: types.CallbackQuery):
     original_msg = callback.message.reply_to_message
     
     if not original_msg:
-        await callback.message.edit_text("❌ Xatolik yuz berdi.")
+        await callback.message.edit_text("❌ Xatolik: Link topilmadi.")
         return
 
     embed_url = get_embed_url(original_msg.text)
+    if not embed_url:
+        await callback.message.edit_text("❌ Noto'g'ri YouTube linki.")
+        return
     
     try:
         db.reference('videos').push({
@@ -78,9 +81,9 @@ async def save_link(callback: types.CallbackQuery):
             'caption': original_msg.caption or "",
             'date': datetime.now().strftime("%Y-%m-%d %H:%M")
         })
-        await callback.message.edit_text(f"✅ Shorts '{cat}' rukniga saqlandi!")
+        await callback.message.edit_text(f"✅ Saqlandi! Rukn: {cat}")
     except Exception as e:
-        await callback.message.edit_text(f"❌ Xato: {e}")
+        await callback.message.edit_text(f"❌ Firebase xatosi: {e}")
 
 async def main():
     app = web.Application()
@@ -91,21 +94,14 @@ async def main():
     port = int(os.getenv("PORT", 10000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     
-    # Konfliktni va eski webhooklarni tozalash
     await bot.delete_webhook(drop_pending_updates=True)
     await site.start()
-    
-    logging.info(f"Bot start port: {port}")
     
     try:
         await dp.start_polling(bot)
     finally:
-        # Sessiyalarni yopish (Unclosed client session xatosini oldini oladi)
         await bot.session.close()
         await runner.cleanup()
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        pass
+    asyncio.run(main())
