@@ -3,28 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels - Mini App</title>
+    <title>UzReels</title>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
-    
     <style>
-        * { box-sizing: border-box; }
-        body { 
-            margin: 0; 
-            background: #000; 
-            color: #fff; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            overflow: hidden; 
-        }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
         #reels { 
             height: 100vh; 
-            width: 100vw; 
             overflow-y: scroll; 
             scroll-snap-type: y mandatory; 
-            scrollbar-width: none; /* Firefox uchun */
+            scrollbar-width: none; 
         }
-        #reels::-webkit-scrollbar { display: none; } /* Chrome/Safari uchun */
-
+        #reels::-webkit-scrollbar { display: none; }
         .reel { 
             height: 100vh; 
             width: 100vw; 
@@ -33,56 +23,20 @@
             background: #000;
             display: flex;
             align-items: center;
-            justify-content: center;
         }
-        video { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; /* Videoni ekranga to'liq yoyish */
-        }
+        video { width: 100%; height: 100%; object-fit: cover; }
         .info {
-            position: absolute;
-            bottom: 30px;
-            left: 15px;
-            right: 15px;
-            z-index: 10;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            position: absolute; bottom: 40px; left: 15px; right: 15px;
+            z-index: 10; text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
         }
-        .info h3 { margin: 0; font-size: 18px; color: #fff; }
-        .info p { margin: 5px 0 0; font-size: 14px; color: #ddd; }
-
-        .status-msg { 
-            position: fixed; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
-            text-align: center; 
-            width: 80%; 
-            z-index: 100;
-            color: #888;
-        }
-        
-        /* Video yuklanish vaqtidagi animatsiya */
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .info h3 { margin: 0; font-size: 16px; }
+        .status-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; }
     </style>
 </head>
 <body>
 
     <div id="reels">
-        <div class="status-msg" id="status">
-            <div class="loading-spinner"></div>
-            <br>Baza bilan aloqa o'rnatilmoqda...
-        </div>
+        <div class="status-msg" id="status">Videolar yuklanmoqda...</div>
     </div>
 
     <script>
@@ -96,59 +50,73 @@
             appId: "1:548439537876:web:385c3004c225501914a341"
         };
 
-        try {
-            firebase.initializeApp(firebaseConfig);
-            const database = firebase.database();
-            const status = document.getElementById('status');
-            const reelsContainer = document.getElementById('reels');
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const reelsContainer = document.getElementById('reels');
+        const status = document.getElementById('status');
 
-            // Bazadan ma'lumotlarni o'qish
-            database.ref('videos').on('value', (snapshot) => {
-                const data = snapshot.val();
-                
-                if (!data) {
-                    status.innerHTML = "<b>Hali videolar yo'q.</b><br><br>Botga videoning .mp4 linkini yuboring!";
-                    return;
+        database.ref('videos').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) {
+                status.innerHTML = "Hali videolar yo'q.";
+                return;
+            }
+
+            reelsContainer.innerHTML = '';
+            Object.values(data).reverse().forEach((item, index) => {
+                if (item.url && String(item.url).startsWith('http')) {
+                    const div = document.createElement('div');
+                    div.className = 'reel';
+                    div.innerHTML = `
+                        <video src="${item.url}" loop playsinline muted></video>
+                        <div class="info">
+                            <h3>@${item.user || 'admin'}</h3>
+                            <p>${item.caption || ''}</p>
+                        </div>
+                    `;
+                    reelsContainer.appendChild(div);
                 }
+            });
+            status.style.display = 'none';
+            initVideoLogic(); // Videolarni boshqarish funksiyasini yoqish
+        });
 
-                reelsContainer.innerHTML = ''; // Ekranni tozalash
-                
-                Object.values(data).reverse().forEach(item => {
-                    if (item.url && String(item.url).startsWith('http')) {
-                        const reelDiv = document.createElement('div');
-                        reelDiv.className = 'reel';
-                        
-                        reelDiv.innerHTML = `
-                            <video src="${item.url}" 
-                                   loop 
-                                   playsinline 
-                                   autoplay 
-                                   muted 
-                                   preload="auto"
-                                   onclick="this.muted = !this.muted; this.play()">
-                            </video>
-                            <div class="info">
-                                <h3>@${item.user || 'foydalanuvchi'}</h3>
-                                <p>${item.caption || ''}</p>
-                            </div>
-                        `;
-                        reelsContainer.appendChild(reelDiv);
+        function initVideoLogic() {
+            const videos = document.querySelectorAll('video');
+            
+            // Foydalanuvchi ekranga birinchi marta tekkanda ovozni yoqishga ruxsat berish
+            document.body.onclick = () => {
+                videos.forEach(v => {
+                    if (isElementInViewport(v)) {
+                        v.muted = false;
+                        v.play().catch(e => console.log("Play error:", e));
                     }
                 });
+            };
 
-                // Agar videolar bo'lsa, xabarni o'chirish
-                if(reelsContainer.children.length > 0) {
-                    status.style.display = 'none';
-                } else {
-                    status.innerHTML = "To'g'ri formatdagi videolar topilmadi (.mp4 link kerak)";
-                }
-            }, (error) => {
-                status.innerHTML = "Firebase xatosi: " + error.message;
-            });
+            // Scroll bo'lganda ishlaydigan mantiq
+            reelsContainer.onscroll = () => {
+                videos.forEach(video => {
+                    if (isElementInViewport(video)) {
+                        video.play();
+                        // Video ekranda bo'lsa ovozi chiqadi (agar foydalanuvchi ruxsat bergan bo'lsa)
+                    } else {
+                        video.pause();
+                        video.currentTime = 0; // Videoni boshiga qaytaradi (xotirani tejash uchun)
+                    }
+                });
+            };
+        }
 
-        } catch (e) {
-            document.getElementById('status').innerHTML = "Tizim xatosi: " + e.message;
+        // Element ekranda ko'rinib turganini tekshirish funksiyasi
+        function isElementInViewport(el) {
+            const rect = el.getBoundingClientRect();
+            return (
+                rect.top >= 0 &&
+                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight)
+            );
         }
     </script>
 </body>
 </html>
+
