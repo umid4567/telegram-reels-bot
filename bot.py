@@ -10,86 +10,64 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 from datetime import datetime
 
-logging.basicConfig(level=logging.INFO)
-
-# Firebase
+# Firebase sozlamalari
 cred_path = "/opt/render/project/src/firebase-key.json"
 firebase_url = "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/"
 
 if not firebase_admin._apps:
-    if os.path.exists(cred_path):
-        cred = credentials.Certificate(cred_path)
-        firebase_admin.initialize_app(cred, {'databaseURL': firebase_url})
+    cred = credentials.Certificate(cred_path)
+    firebase_admin.initialize_app(cred, {'databaseURL': firebase_url})
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-async def handle(request):
-    return web.Response(text="UzReels Shorts Bot is active!")
-
-def get_youtube_embed(url):
-    video_id = ""
-    if "shorts/" in url:
-        video_id = url.split("shorts/")[1].split("?")[0]
-    elif "v=" in url:
-        video_id = url.split("v=")[1].split("&")[0]
-    elif "youtu.be/" in url:
-        video_id = url.split("youtu.be/")[1].split("?")[0]
-    
-    if video_id:
-        # mute=1 avtomatik ijro uchun shart. playlist=ID takrorlanishi (loop) uchun.
-        return f"https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1&loop=1&playlist={video_id}&rel=0&controls=1"
-    return None
-
-@dp.message(CommandStart())
-async def start(message: types.Message):
-    web_url = "https://umid4567.github.io/telegram-reels-bot/"
-    builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="🎬 Shorts ko'rish", web_app=WebAppInfo(url=web_url)))
-    await message.answer("Salom! YouTube Shorts linkini yuboring.", reply_markup=builder.as_markup())
+# YouTube va Instagram linklarini ajratish uchun oddiy tekshiruv
+def get_embed_url(original_url):
+    if "youtube.com" in original_url or "youtu.be" in original_url:
+        # Shorts linkini Embed ko'rinishiga keltirish
+        if "shorts/" in original_url:
+            video_id = original_url.split("shorts/")[1].split("?")[0]
+            return f"https://www.youtube.com/embed/{video_id}?autoplay=1&loop=1&playlist={video_id}"
+    elif "instagram.com" in original_url:
+        # Instagram Reels uchun (Eslatma: Instagram embed qilishni cheklashi mumkin)
+        if "/reels/" in original_url or "/reel/" in original_url:
+            clean_url = original_url.split("?")[0]
+            return f"{clean_url}embed/"
+    return original_url
 
 @dp.message(F.text.contains("http"))
 async def process_link(message: types.Message):
-    embed_url = get_youtube_embed(message.text)
-    if not embed_url:
-        await message.reply("Iltimos, faqat to'g'ri YouTube linkini yuboring.")
-        return
-        
+    url = get_embed_url(message.text)
     builder = InlineKeyboardBuilder()
     for cat in ["Futbol", "Qiziqarli", "Texno", "Boshqa"]:
         builder.button(text=cat, callback_data=f"save_{cat}")
     builder.adjust(2)
-    await message.reply("Ruknni tanlang:", reply_markup=builder.as_markup())
+    # Vaqtinchalik linkni foydalanuvchi ma'lumotlarida saqlab turamiz
+    await message.reply(f"Link qabul qilindi. Ruknni tanlang:", reply_markup=builder.as_markup())
 
 @dp.callback_query(F.data.startswith("save_"))
 async def save_link(callback: types.CallbackQuery):
     cat = callback.data.split("_")[1]
-    original_msg = callback.message.reply_to_message
+    msg = callback.message.reply_to_message # Bu foydalanuvchi yuborgan link
     
-    embed_url = get_youtube_embed(original_msg.text)
+    final_url = get_embed_url(msg.text)
     
-    try:
-        db.reference('videos').push({
-            'url': embed_url,
-            'user': callback.from_user.full_name,
-            'caption': original_msg.caption or "",
-            'category': cat,
-            'date': datetime.now().strftime("%Y-%m-%d %H:%M")
-        })
-        await callback.message.edit_text(f"✅ Shorts '{cat}' rukniga saqlandi!")
-    except Exception as e:
-        await callback.message.edit_text(f"❌ Xato: {e}")
+    db.reference('videos').push({
+        'url': final_url,
+        'type': 'youtube' if 'youtube' in final_url else 'instagram',
+        'user': callback.from_user.full_name,
+        'category': cat,
+        'date': datetime.now().strftime("%Y-%m-%d %H:%M")
+    })
+    await callback.message.edit_text(f"✅ Link '{cat}' rukniga saqlandi!")
 
 async def main():
     app = web.Application()
-    app.router.add_get('/', handle)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', int(os.getenv("PORT", 10000)))
-    await bot.delete_webhook(drop_pending_updates=True)
-    await site.start()
-    await dp.start_polling(bot)
+    await asyncio.gather(site.start(), dp.start_polling(bot))
 
 if __name__ == "__main__":
     asyncio.run(main())
