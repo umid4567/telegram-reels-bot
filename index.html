@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels Official</title>
+    <title>UzReels Shorts</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
@@ -19,22 +19,20 @@
         
         .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; display: flex; align-items: center; justify-content: center; padding-top: 50px; box-sizing: border-box; }
         
-        .content-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        video, iframe { width: 100%; height: 100%; border: none; object-fit: cover; }
+        .content-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; }
+        iframe { width: 100%; height: 100%; border: none; transform: scale(1.02); }
         
-        /* HIYLA: Videoni o'rtasini bosganda Instagramga chiqib ketmaslik uchun */
-        .video-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 85%; z-index: 5; background: transparent; }
+        /* Video ustidagi shaffof qatlam (YouTube interfeysiga xalaqit bermaslik uchun pastroq qildik) */
+        .video-overlay { position: absolute; top: 0; left: 0; width: 80%; height: 70%; z-index: 5; }
 
         .side-bar { position: absolute; right: 10px; bottom: 120px; display: flex; flex-direction: column; gap: 20px; align-items: center; z-index: 10; }
-        .btn { background: none; border: none; color: white; display: flex; flex-direction: column; align-items: center; text-shadow: 1px 1px 2px #000; cursor: pointer; }
+        .btn { background: none; border: none; color: white; display: flex; flex-direction: column; align-items: center; text-shadow: 1px 1px 2px #000; }
         .btn svg { width: 32px; height: 32px; fill: white; margin-bottom: 5px; }
         .liked svg { fill: #ff2d55; }
         
         .info { position: absolute; bottom: 40px; left: 15px; right: 80px; text-shadow: 1px 1px 3px #000; z-index: 10; pointer-events: none; }
-        .info h3 a { color: #3498db; text-decoration: none; font-weight: bold; pointer-events: auto; }
+        .info h3 { margin: 0; font-size: 16px; color: #3498db; }
         .info p { font-size: 14px; margin: 5px 0; opacity: 0.9; }
-
-        .yt-fix { transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -68,7 +66,6 @@
         const db = firebase.database();
         let currentCat = "Hammasi";
         let allData = [];
-        let firstLoad = true;
 
         function setCat(cat) {
             currentCat = cat;
@@ -79,16 +76,6 @@
         db.ref('videos').on('value', snap => {
             allData = Object.entries(snap.val() || {}).reverse();
             render();
-            if (firstLoad) {
-                const startId = new URLSearchParams(window.location.search).get('start');
-                if (startId) {
-                    setTimeout(() => {
-                        const el = document.querySelector(`[data-id="${startId}"]`);
-                        if (el) el.scrollIntoView();
-                    }, 800);
-                }
-                firstLoad = false;
-            }
         });
 
         function render() {
@@ -100,29 +87,14 @@
                 
                 const likes = item.likes ? Object.keys(item.likes).length : 0;
                 const isLiked = item.likes && item.likes[userId] ? 'liked' : '';
-                const userDisplay = item.user.startsWith('@') 
-                    ? `<a href="https://t.me/${item.user.substring(1)}" target="_blank">${item.user}</a>` 
-                    : `@${item.user}`;
-
-                let mediaContent = '';
-                // YouTube Embed tekshiruvi (mute=1 autoplay uchun shart)
-                if (item.url.includes('youtube.com/embed')) {
-                    mediaContent = `
-                        <iframe class="yt-fix" src="${item.url}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
-                        <div class="video-overlay"></div>`;
-                } else if (item.url.includes('instagram.com')) {
-                    mediaContent = `
-                        <iframe src="${item.url}" scrolling="no" allowtransparency="true" frameborder="0" allow="autoplay"></iframe>
-                        <div class="video-overlay"></div>`;
-                } else {
-                    mediaContent = `<video src="${item.url}" loop playsinline muted preload="metadata"></video>`;
-                }
                 
                 const div = document.createElement('div');
                 div.className = 'reel';
-                div.dataset.id = id;
                 div.innerHTML = `
-                    <div class="content-wrapper">${mediaContent}</div>
+                    <div class="content-wrapper">
+                        <iframe src="${item.url}" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                        <div class="video-overlay"></div>
+                    </div>
                     <div class="side-bar">
                         <button class="btn ${isLiked}" onclick="like('${id}')">
                             <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
@@ -133,11 +105,13 @@
                             <span>Share</span>
                         </button>
                     </div>
-                    <div class="info"><h3>${userDisplay}</h3><p>${item.caption || ''}</p></div>
+                    <div class="info">
+                        <h3>@${item.user}</h3>
+                        <p>${item.caption || ''}</p>
+                    </div>
                 `;
                 container.appendChild(div);
             });
-            initObserver();
         }
 
         function like(id) {
@@ -146,27 +120,10 @@
         }
 
         function shareVideo(id) {
-            const botUser = "uzreels_official_bot";
-            const link = `https://t.me/${botUser}?start=${id}`;
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=UzReels 🔥`);
+            const link = `https://t.me/uzreels_official_bot?start=${id}`;
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=UzReels Shorts 🔥`);
         }
-
-        function initObserver() {
-            const obs = new IntersectionObserver(es => {
-                es.forEach(e => { 
-                    const v = e.target.querySelector('video');
-                    if (v) { e.isIntersecting ? v.play().catch(()=>{}):v.pause(); }
-                });
-            }, {threshold: 0.6});
-            document.querySelectorAll('.reel').forEach(r => obs.observe(r));
-        }
-
-        document.body.onclick = () => {
-            document.querySelectorAll('video').forEach(v => {
-                const r = v.getBoundingClientRect();
-                if(r.top>=0 && r.top<window.innerHeight){ v.muted=false; v.play().catch(()=>{}); }
-            });
-        };
     </script>
 </body>
 </html>
+
