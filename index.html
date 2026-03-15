@@ -3,30 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels Memory</title>
+    <title>UzReels - Social</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
-        #reels { 
-            height: 100vh; 
-            overflow-y: scroll; 
-            scroll-snap-type: y mandatory; 
-            scrollbar-width: none; 
-        }
+        #reels { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
         #reels::-webkit-scrollbar { display: none; }
-        .reel { 
-            height: 100vh; width: 100vw; 
-            scroll-snap-align: start; 
-            position: relative; 
-            background: #000;
-            display: flex; align-items: center; justify-content: center;
-        }
+        .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; background: #000; display: flex; align-items: center; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        .info {
-            position: absolute; bottom: 40px; left: 15px; right: 15px;
-            z-index: 10; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        
+        /* O'ng tarafdagi tugmalar paneli */
+        .side-bar {
+            position: absolute; right: 10px; bottom: 100px;
+            display: flex; flex-direction: column; gap: 20px; z-index: 100;
         }
+        .action-btn {
+            background: none; border: none; color: white;
+            display: flex; flex-direction: column; align-items: center; cursor: pointer;
+        }
+        .action-btn svg { width: 32px; height: 32px; fill: white; margin-bottom: 5px; transition: 0.2s; }
+        .action-btn span { font-size: 12px; font-weight: bold; }
+        .liked svg { fill: #ff2d55; transform: scale(1.2); }
+
+        .overlay { position: absolute; bottom: 40px; left: 15px; right: 80px; text-shadow: 2px 2px 4px #000; }
+        h3 { margin: 0; font-size: 16px; }
+        p { margin: 5px 0 0; font-size: 14px; color: #eee; }
     </style>
 </head>
 <body>
@@ -34,6 +37,10 @@
     <div id="reels"></div>
 
     <script>
+        const tg = window.Telegram.WebApp;
+        const user = tg.initDataUnsafe.user || { id: "guest", first_name: "Mehmon" };
+        tg.expand();
+
         const firebaseConfig = {
             apiKey: "AIzaSyAHiKEVfIPHiyYlIUjctyeXvnPgKuY4qRk",
             authDomain: "uzreels-bot.firebaseapp.com",
@@ -45,73 +52,76 @@
         };
 
         firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const reelsContainer = document.getElementById('reels');
+        const db = firebase.database();
 
-        database.ref('videos').on('value', (snapshot) => {
+        db.ref('videos').on('value', (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
+            const container = document.getElementById('reels');
+            container.innerHTML = '';
 
-            reelsContainer.innerHTML = '';
-            // Videolarni ID bilan birga saqlaymiz
-            const videoEntries = Object.entries(data).reverse();
-
-            videoEntries.forEach(([id, item]) => {
-                if (item.url && String(item.url).startsWith('http')) {
-                    const reelDiv = document.createElement('div');
-                    reelDiv.className = 'reel';
-                    reelDiv.dataset.id = id; // Har bir videoga ID biriktiramiz
-                    reelDiv.innerHTML = `
-                        <video src="${item.url}" loop playsinline muted preload="auto"></video>
-                        <div class="info">
-                            <h3>@${item.user || 'foydalanuvchi'}</h3>
-                            <p>${item.caption || ''}</p>
-                        </div>
-                    `;
-                    reelsContainer.appendChild(reelDiv);
-                }
+            Object.entries(data).reverse().forEach(([id, item]) => {
+                const likesCount = item.likes ? Object.keys(item.likes).length : 0;
+                const isLiked = item.likes && item.likes[user.id] ? 'liked' : '';
+                
+                const div = document.createElement('div');
+                div.className = 'reel';
+                div.innerHTML = `
+                    <video src="${item.url}" loop playsinline muted></video>
+                    <div class="side-bar">
+                        <button class="action-btn ${isLiked}" onclick="toggleLike('${id}')">
+                            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            <span>${likesCount}</span>
+                        </button>
+                        <button class="action-btn" onclick="openComments('${id}')">
+                            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <span>Izoh</span>
+                        </button>
+                        <button class="action-btn" onclick="shareVideo('${item.url}')">
+                            <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                        </button>
+                    </div>
+                    <div class="overlay">
+                        <h3>@${item.user || 'admin'}</h3>
+                        <p>${item.caption || ''}</p>
+                    </div>
+                `;
+                container.appendChild(div);
             });
-
-            setupObserver();
-            scrollToLastVideo(); // Oxirgi ko'rilgan videoga sakrash
+            initScroll();
         });
 
-        function setupObserver() {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const video = entry.target;
-                    if (entry.isIntersecting) {
-                        video.play();
-                        // Ko'rilayotgan video ID-sini xotiraga saqlash
-                        const videoId = video.parentElement.dataset.id;
-                        localStorage.setItem('last_video_id', videoId);
-                    } else {
-                        video.pause();
-                    }
-                });
-            }, { threshold: 0.6 });
+        function toggleLike(videoId) {
+            const likeRef = db.ref(`videos/${videoId}/likes/${user.id}`);
+            likeRef.once('value', snap => {
+                if (snap.exists()) {
+                    likeRef.remove(); // Laykni olib tashlash
+                } else {
+                    likeRef.set(true); // Layk qo'yish
+                }
+            });
+        }
 
+        function openComments(videoId) {
+            tg.showAlert("Izohlar bo'limi tez kunda ishga tushadi!");
+            // Bu yerda Firebase orqali izohlarni chiqarish mumkin
+        }
+
+        function shareVideo(url) {
+            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=UzReels-da ajoyib video!`);
+        }
+
+        function initScroll() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if(e.isIntersecting) e.target.play(); else e.target.pause(); });
+            }, {threshold: 0.6});
             document.querySelectorAll('video').forEach(v => observer.observe(v));
         }
 
-        function scrollToLastVideo() {
-            const lastId = localStorage.getItem('last_video_id');
-            if (lastId) {
-                const lastElement = document.querySelector(`[data-id="${lastId}"]`);
-                if (lastElement) {
-                    lastElement.scrollIntoView();
-                }
-            }
-        }
-
-        // Birinchi teginishda ovozni yoqish
         document.body.onclick = () => {
             document.querySelectorAll('video').forEach(v => {
-                const rect = v.getBoundingClientRect();
-                if (rect.top >= 0 && rect.top < window.innerHeight) {
-                    v.muted = false;
-                    v.play();
-                }
+                const r = v.getBoundingClientRect();
+                if(r.top>=0 && r.top<window.innerHeight){ v.muted=false; v.play(); }
             });
         };
     </script>
