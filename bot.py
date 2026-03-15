@@ -28,24 +28,31 @@ async def handle(request):
     return web.Response(text="UzReels Bot is active!")
 
 def get_embed_url(url):
-    # YouTube Shorts va Video
+    # YouTube tekshiruvi
     if "youtube.com" in url or "youtu.be" in url:
+        video_id = ""
         if "shorts/" in url:
             video_id = url.split("shorts/")[1].split("?")[0]
-            return f"https://www.youtube.com/embed/{video_id}?autoplay=1&rel=0&loop=1&playlist={video_id}"
         elif "v=" in url:
             video_id = url.split("v=")[1].split("&")[0]
-            return f"https://www.youtube.com/embed/{video_id}?autoplay=1"
-    # Instagram Reels va Post
+        elif "youtu.be/" in url:
+            video_id = url.split("youtu.be/")[1].split("?")[0]
+        
+        if video_id:
+            # mute=1 autoplay uchun juda muhim!
+            return f"https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1&loop=1&playlist={video_id}&rel=0"
+            
+    # Instagram tekshiruvi
     elif "instagram.com" in url:
         clean_url = url.split("?")[0]
         if not clean_url.endswith("/"): clean_url += "/"
-        # caption=0 ortiqcha yozuvlarni olib tashlaydi
-        return f"{clean_url}embed/?captioned=0"
+        return f"{clean_url}embed/"
+        
     return url
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
+    # O'z Web App linkigizni tekshiring
     web_url = "https://umid4567.github.io/telegram-reels-bot/"
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="🎬 UzReels-ni ochish", web_app=WebAppInfo(url=web_url)))
@@ -65,7 +72,7 @@ async def save_link(callback: types.CallbackQuery):
     original_msg = callback.message.reply_to_message
     
     if not original_msg:
-        await callback.message.edit_text("❌ Xato: Asl link topilmadi.")
+        await callback.message.edit_text("❌ Xato: Link topilmadi.")
         return
 
     embed_url = get_embed_url(original_msg.text)
@@ -91,6 +98,7 @@ async def main():
     port = int(os.getenv("PORT", 10000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     
+    # Konfliktni oldini olish uchun
     await bot.delete_webhook(drop_pending_updates=True)
     await site.start()
     await dp.start_polling(bot)
