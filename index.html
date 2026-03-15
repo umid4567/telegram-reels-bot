@@ -9,24 +9,18 @@
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
-        
-        /* Kategoriya menyusi */
         .cat-bar { position: fixed; top: 0; left: 0; right: 0; display: flex; gap: 10px; padding: 15px; overflow-x: auto; z-index: 1000; scrollbar-width: none; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
         .cat-bar::-webkit-scrollbar { display: none; }
-        .cat-item { background: rgba(255,255,255,0.2); padding: 7px 15px; border-radius: 20px; font-size: 13px; white-space: nowrap; transition: 0.3s; }
+        .cat-item { background: rgba(255,255,255,0.2); padding: 7px 15px; border-radius: 20px; font-size: 13px; white-space: nowrap; transition: 0.3s; cursor: pointer; }
         .cat-item.active { background: #ff2d55; font-weight: bold; }
-
         #reels { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
         #reels::-webkit-scrollbar { display: none; }
         .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; display: flex; align-items: center; }
         video { width: 100%; height: 100%; object-fit: cover; }
-
-        /* O'ng panel tugmalari */
         .side-bar { position: absolute; right: 10px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; align-items: center; }
-        .btn { background: none; border: none; color: white; display: flex; flex-direction: column; align-items: center; text-shadow: 1px 1px 2px #000; }
+        .btn { background: none; border: none; color: white; display: flex; flex-direction: column; align-items: center; text-shadow: 1px 1px 2px #000; cursor: pointer; }
         .btn svg { width: 30px; height: 30px; fill: white; margin-bottom: 5px; }
         .liked svg { fill: #ff2d55; }
-
         .info { position: absolute; bottom: 40px; left: 15px; right: 80px; text-shadow: 1px 1px 3px #000; }
     </style>
 </head>
@@ -61,6 +55,7 @@
         const db = firebase.database();
         let currentCat = "Hammasi";
         let allData = [];
+        let isFirstLoad = true;
 
         function setCat(cat) {
             currentCat = cat;
@@ -71,6 +66,23 @@
         db.ref('videos').on('value', snap => {
             allData = Object.entries(snap.val() || {}).reverse();
             render();
+            
+            // Deep link tekshiruvi (faqat birinchi yuklanishda)
+            if (isFirstLoad) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const startId = urlParams.get('start');
+                if (startId) {
+                    setTimeout(() => {
+                        const target = document.querySelector(`[data-id="${startId}"]`);
+                        if (target) {
+                            target.scrollIntoView();
+                            const v = target.querySelector('video');
+                            if(v) { v.muted = false; v.play(); }
+                        }
+                    }, 800);
+                }
+                isFirstLoad = false;
+            }
         });
 
         function render() {
@@ -84,11 +96,18 @@
                 
                 const div = document.createElement('div');
                 div.className = 'reel';
+                div.dataset.id = id; // ID-ni data-atributga saqlash
                 div.innerHTML = `
                     <video src="${item.url}" loop playsinline muted preload="auto"></video>
                     <div class="side-bar">
-                        <button class="btn ${isLiked}" onclick="like('${id}')"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg><span>${likes}</span></button>
-                        <button class="btn" onclick="share('${item.url}')"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg><span>Share</span></button>
+                        <button class="btn ${isLiked}" onclick="like('${id}')">
+                            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            <span>${likes}</span>
+                        </button>
+                        <button class="btn" onclick="shareVideo('${id}')">
+                            <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                            <span>Share</span>
+                        </button>
                     </div>
                     <div class="info"><h3>@${item.user}</h3><p>${item.caption}</p></div>
                 `;
@@ -103,16 +122,12 @@
         }
 
         function shareVideo(videoId) {
-    const botUsername = "uzreels_official_bot"; // Botingiz nomi
-    // Telegram bot linki: t.me/bot?start=videoID
-    const deepLink = `https://t.me/${botUsername}?start=${videoId}`;
-    
-    const shareText = encodeURIComponent("UzReels-da ajoyib video, ko'ring! 🔥");
-    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${shareText}`;
-    
-    tg.openTelegramLink(telegramUrl);
-}
-
+            const botUsername = "uzreels_official_bot"; 
+            const deepLink = `https://t.me/${botUsername}?start=${videoId}`;
+            const shareText = encodeURIComponent("UzReels-da ajoyib video, ko'ring! 🔥");
+            const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${shareText}`;
+            tg.openTelegramLink(telegramUrl);
+        }
 
         function initObserver() {
             const observer = new IntersectionObserver(es => {
