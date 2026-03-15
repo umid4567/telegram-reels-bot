@@ -3,21 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels</title>
+    <title>UzReels - Mini App</title>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
+    
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        #reels { width: 100%; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; }
-        .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        .msg { padding: 20px; font-size: 14px; color: #ccc; }
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            background: #000; 
+            color: #fff; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            overflow: hidden; 
+        }
+        #reels { 
+            height: 100vh; 
+            width: 100vw; 
+            overflow-y: scroll; 
+            scroll-snap-type: y mandatory; 
+            scrollbar-width: none; /* Firefox uchun */
+        }
+        #reels::-webkit-scrollbar { display: none; } /* Chrome/Safari uchun */
+
+        .reel { 
+            height: 100vh; 
+            width: 100vw; 
+            scroll-snap-align: start; 
+            position: relative; 
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; /* Videoni ekranga to'liq yoyish */
+        }
+        .info {
+            position: absolute;
+            bottom: 30px;
+            left: 15px;
+            right: 15px;
+            z-index: 10;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        .info h3 { margin: 0; font-size: 18px; color: #fff; }
+        .info p { margin: 5px 0 0; font-size: 14px; color: #ddd; }
+
+        .status-msg { 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            text-align: center; 
+            width: 80%; 
+            z-index: 100;
+            color: #888;
+        }
+        
+        /* Video yuklanish vaqtidagi animatsiya */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div id="reels">
-        <div class="msg" id="status">Baza bilan aloqa o'rnatilmoqda...</div>
+        <div class="status-msg" id="status">
+            <div class="loading-spinner"></div>
+            <br>Baza bilan aloqa o'rnatilmoqda...
+        </div>
     </div>
 
     <script>
@@ -35,33 +100,54 @@
             firebase.initializeApp(firebaseConfig);
             const database = firebase.database();
             const status = document.getElementById('status');
-            const reels = document.getElementById('reels');
+            const reelsContainer = document.getElementById('reels');
 
-            // Bazadan ma'lumotni olishga urinish
+            // Bazadan ma'lumotlarni o'qish
             database.ref('videos').on('value', (snapshot) => {
                 const data = snapshot.val();
-                console.log("Ma'lumot:", data);
-
+                
                 if (!data) {
-                    status.innerHTML = "Baza topildi, lekin ichi bo'sh. <br> Botga .mp4 link yuboring!";
+                    status.innerHTML = "<b>Hali videolar yo'q.</b><br><br>Botga videoning .mp4 linkini yuboring!";
                     return;
                 }
 
-                reels.innerHTML = '';
+                reelsContainer.innerHTML = ''; // Ekranni tozalash
+                
                 Object.values(data).reverse().forEach(item => {
-                    if (item.url) {
-                        const div = document.createElement('div');
-                        div.className = 'reel';
-                        div.innerHTML = `<video src="${item.url}" loop playsinline autoplay muted onclick="this.muted=false; this.play()"></video>`;
-                        reels.appendChild(div);
+                    if (item.url && String(item.url).startsWith('http')) {
+                        const reelDiv = document.createElement('div');
+                        reelDiv.className = 'reel';
+                        
+                        reelDiv.innerHTML = `
+                            <video src="${item.url}" 
+                                   loop 
+                                   playsinline 
+                                   autoplay 
+                                   muted 
+                                   preload="auto"
+                                   onclick="this.muted = !this.muted; this.play()">
+                            </video>
+                            <div class="info">
+                                <h3>@${item.user || 'foydalanuvchi'}</h3>
+                                <p>${item.caption || ''}</p>
+                            </div>
+                        `;
+                        reelsContainer.appendChild(reelDiv);
                     }
                 });
+
+                // Agar videolar bo'lsa, xabarni o'chirish
+                if(reelsContainer.children.length > 0) {
+                    status.style.display = 'none';
+                } else {
+                    status.innerHTML = "To'g'ri formatdagi videolar topilmadi (.mp4 link kerak)";
+                }
             }, (error) => {
                 status.innerHTML = "Firebase xatosi: " + error.message;
             });
 
         } catch (e) {
-            document.getElementById('status').innerHTML = "Kodda xato: " + e.message;
+            document.getElementById('status').innerHTML = "Tizim xatosi: " + e.message;
         }
     </script>
 </body>
