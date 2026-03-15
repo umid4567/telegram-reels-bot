@@ -5,7 +5,7 @@ import firebase_admin
 from firebase_admin import credentials, db
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
-from aiogram.types import WebAppInfo
+from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
@@ -17,12 +17,8 @@ if not firebase_admin._apps:
     if os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred, {'databaseURL': firebase_url})
-    else:
-        logging.error("MUHIM: firebase-key.json topilmadi!")
 
 TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = 7748146680 
-
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 logging.basicConfig(level=logging.INFO)
@@ -34,40 +30,47 @@ async def handle(request):
 async def start(message: types.Message):
     builder = InlineKeyboardBuilder()
     web_url = "https://umid4567.github.io/telegram-reels-bot/" 
-    builder.row(types.InlineKeyboardButton(text="🎬 Reels ko'rish", web_app=WebAppInfo(url=web_url)))
-    await message.answer(f"Salom {message.from_user.full_name}!", reply_markup=builder.as_markup())
+    builder.row(types.InlineKeyboardButton(text="🎬 UzReels-ni ochish", web_app=WebAppInfo(url=web_url)))
+    await message.answer(f"Salom {message.from_user.full_name}!\nMenga video yuboring va ruknni tanlang.", reply_markup=builder.as_markup())
 
-# --- MUHIM O'ZGARISH SHU YERDA ---
+# --- HAMMA YUBORA OLADIGAN QISMI ---
 @dp.message(F.video)
-async def handle_video(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
+async def ask_category(message: types.Message):
+    # Kategoriya tanlash tugmalari
+    builder = InlineKeyboardBuilder()
+    categories = ["Futbol", "Qiziqarli", "Texno", "Boshqa"]
+    
+    for cat in categories:
+        builder.button(text=cat, callback_data=f"c_{cat}")
+    builder.adjust(2)
+    
+    await message.reply("Ushbu video qaysi ruknga tegishli?", reply_markup=builder.as_markup())
 
-    wait_msg = await message.reply("⏳ Video linkka aylantirilmoqda...")
+# --- KATEGORIYA BILAN TEZ SAQLASH ---
+@dp.callback_query(F.data.startswith("c_"))
+async def save_video_with_cat(callback: types.CallbackQuery):
+    cat = callback.data.split("_")[1]
+    msg = callback.message.reply_to_message # Asl yuborilgan video xabari
     
     try:
-        # 1. Telegramdan fayl yo'lini olish
-        file_id = message.video.file_id
-        file = await bot.get_file(file_id)
-        file_path = file.file_path
+        # Telegramdan vaqtinchalik link olish (Eng tez usul)
+        file = await bot.get_file(msg.video.file_id)
+        download_url = f"https://api.telegram.org/file/bot{TOKEN}/{file.file_path}"
         
-        # 2. To'g'ridan-to'g'ri yuklab olish linkini yasash
-        # DIQQAT: Bu link vaqtinchalik (bir necha soat ishlaydi)
-        download_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
-        
-        # 3. Firebase-ga yozish
+        # Firebase-ga saqlash
         ref = db.reference('videos')
         ref.push({
-            'url': download_url, # Endi bu yerda file_id emas, haqiqiy link bor
-            'user': message.from_user.full_name,
-            'caption': message.caption or "Yangi video",
-            'date': message.date.strftime("%Y-%m-%d %H:%M")
+            'url': download_url,
+            'user': msg.from_user.full_name or "Foydalanuvchi",
+            'username': msg.from_user.username or "user",
+            'caption': msg.caption or "Video",
+            'category': cat,
+            'date': msg.date.strftime("%Y-%m-%d %H:%M")
         })
         
-        await wait_msg.edit_text("✅ Video muvaffaqiyatli Web App-ga qo'shildi!")
+        await callback.message.edit_text(f"✅ Video '{cat}' rukniga qo'shildi!")
     except Exception as e:
-        logging.error(f"Xato: {e}")
-        await wait_msg.edit_text(f"Xato yuz berdi: {e}")
+        await callback.message.edit_text(f"❌ Xato: {e}")
 
 async def main():
     app = web.Application()
