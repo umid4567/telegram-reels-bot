@@ -3,16 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels Fast</title>
+    <title>UzReels Memory</title>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
-    
     <style>
-        * { box-sizing: border-box; }
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
         #reels { 
             height: 100vh; 
-            width: 100vw; 
             overflow-y: scroll; 
             scroll-snap-type: y mandatory; 
             scrollbar-width: none; 
@@ -25,19 +22,16 @@
             background: #000;
             display: flex; align-items: center; justify-content: center;
         }
-        video { width: 100%; height: 100%; object-fit: cover; background: #000; }
+        video { width: 100%; height: 100%; object-fit: cover; }
         .info {
             position: absolute; bottom: 40px; left: 15px; right: 15px;
             z-index: 10; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }
-        .status-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #888; }
     </style>
 </head>
 <body>
 
-    <div id="reels">
-        <div class="status-msg" id="status">Baza bilan aloqa o'rnatilmoqda...</div>
-    </div>
+    <div id="reels"></div>
 
     <script>
         const firebaseConfig = {
@@ -53,22 +47,22 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const reelsContainer = document.getElementById('reels');
-        const status = document.getElementById('status');
 
         database.ref('videos').on('value', (snapshot) => {
             const data = snapshot.val();
-            if (!data) {
-                status.innerHTML = "Hali videolar yo'q.";
-                return;
-            }
+            if (!data) return;
 
             reelsContainer.innerHTML = '';
-            Object.values(data).reverse().forEach(item => {
+            // Videolarni ID bilan birga saqlaymiz
+            const videoEntries = Object.entries(data).reverse();
+
+            videoEntries.forEach(([id, item]) => {
                 if (item.url && String(item.url).startsWith('http')) {
                     const reelDiv = document.createElement('div');
                     reelDiv.className = 'reel';
+                    reelDiv.dataset.id = id; // Har bir videoga ID biriktiramiz
                     reelDiv.innerHTML = `
-                        <video src="${item.url}" loop playsinline muted preload="metadata"></video>
+                        <video src="${item.url}" loop playsinline muted preload="auto"></video>
                         <div class="info">
                             <h3>@${item.user || 'foydalanuvchi'}</h3>
                             <p>${item.caption || ''}</p>
@@ -77,36 +71,50 @@
                     reelsContainer.appendChild(reelDiv);
                 }
             });
-            status.style.display = 'none';
-            setupObserver(); // Aqlli yuklashni ishga tushirish
+
+            setupObserver();
+            scrollToLastVideo(); // Oxirgi ko'rilgan videoga sakrash
         });
 
         function setupObserver() {
-            const options = { threshold: 0.6 }; // Video 60% ko'rinsa ishlaydi
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const video = entry.target;
                     if (entry.isIntersecting) {
                         video.play();
-                        video.setAttribute('preload', 'auto'); // Ko'rinayotgan videoni to'liq yuklash
+                        // Ko'rilayotgan video ID-sini xotiraga saqlash
+                        const videoId = video.parentElement.dataset.id;
+                        localStorage.setItem('last_video_id', videoId);
                     } else {
                         video.pause();
-                        // Video ko'rinmay qolsa, resursni tejash (ixtiyoriy)
                     }
                 });
-            }, options);
+            }, { threshold: 0.6 });
 
             document.querySelectorAll('video').forEach(v => observer.observe(v));
-            
-            // Ekran bosilganda ovozni ochish va play qilishni majburlash
-            document.body.onclick = () => {
-                const currentVideo = document.querySelector('.reel video:hover') || document.querySelectorAll('video')[0];
-                if(currentVideo) {
-                    currentVideo.muted = false;
-                    currentVideo.play();
-                }
-            };
         }
+
+        function scrollToLastVideo() {
+            const lastId = localStorage.getItem('last_video_id');
+            if (lastId) {
+                const lastElement = document.querySelector(`[data-id="${lastId}"]`);
+                if (lastElement) {
+                    lastElement.scrollIntoView();
+                }
+            }
+        }
+
+        // Birinchi teginishda ovozni yoqish
+        document.body.onclick = () => {
+            document.querySelectorAll('video').forEach(v => {
+                const rect = v.getBoundingClientRect();
+                if (rect.top >= 0 && rect.top < window.innerHeight) {
+                    v.muted = false;
+                    v.play();
+                }
+            });
+        };
     </script>
 </body>
 </html>
+
