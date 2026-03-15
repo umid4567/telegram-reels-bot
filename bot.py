@@ -9,18 +9,16 @@ from aiogram.types import WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
-# 1. Firebase sertifikat fayli yo'li (Render Secret File yo'li)
+# 1. Firebase sozlamalari
 cred_path = "/opt/render/project/src/firebase-key.json"
 firebase_url = "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/"
 
-# 2. Firebase-ni sertifikat bilan ishga tushirish
 if not firebase_admin._apps:
     if os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred, {'databaseURL': firebase_url})
     else:
-        # Agar fayl hali yaratilmagan bo'lsa, xato bermasligi uchun log yozamiz
-        logging.error("MUHIM: firebase-key.json fayli topilmadi! Render-da Secret File yarating.")
+        logging.error("MUHIM: firebase-key.json topilmadi!")
 
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 7748146680 
@@ -29,65 +27,56 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 logging.basicConfig(level=logging.INFO)
 
-# Render uchun veb-server
 async def handle(request):
-    return web.Response(text="Bot muvaffaqiyatli ishlamoqda!")
+    return web.Response(text="Bot ishlamoqda!")
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
     builder = InlineKeyboardBuilder()
     web_url = "https://umid4567.github.io/telegram-reels-bot/" 
-    
-    builder.row(types.InlineKeyboardButton(
-        text="🎬 Reels ko'rish", 
-        web_app=WebAppInfo(url=web_url))
-    )
-    
-    await message.answer(
-        f"Salom {message.from_user.full_name}!\n\nMen admin panel botman. Menga video yuborsangiz, uni bazaga qo'shaman.", 
-        reply_markup=builder.as_markup()
-    )
+    builder.row(types.InlineKeyboardButton(text="🎬 Reels ko'rish", web_app=WebAppInfo(url=web_url)))
+    await message.answer(f"Salom {message.from_user.full_name}!", reply_markup=builder.as_markup())
 
-# Video qabul qilish qismi
+# --- MUHIM O'ZGARISH SHU YERDA ---
 @dp.message(F.video)
 async def handle_video(message: types.Message):
     if message.from_user.id != ADMIN_ID:
-        await message.reply("Kechirasiz, faqat admin video qo'sha oladi.")
         return
 
-    # Telegram video ID-sini olish
-    video_id = message.video.file_id
+    wait_msg = await message.reply("⏳ Video linkka aylantirilmoqda...")
     
     try:
-        # Firebase-ga ma'lumotni yozish
+        # 1. Telegramdan fayl yo'lini olish
+        file_id = message.video.file_id
+        file = await bot.get_file(file_id)
+        file_path = file.file_path
+        
+        # 2. To'g'ridan-to'g'ri yuklab olish linkini yasash
+        # DIQQAT: Bu link vaqtinchalik (bir necha soat ishlaydi)
+        download_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
+        
+        # 3. Firebase-ga yozish
         ref = db.reference('videos')
         ref.push({
-            'url': video_id, 
+            'url': download_url, # Endi bu yerda file_id emas, haqiqiy link bor
             'user': message.from_user.full_name,
             'caption': message.caption or "Yangi video",
             'date': message.date.strftime("%Y-%m-%d %H:%M")
         })
-        await message.reply("✅ Zo'r! Video Firebase bazasiga qo'shildi.")
+        
+        await wait_msg.edit_text("✅ Video muvaffaqiyatli Web App-ga qo'shildi!")
     except Exception as e:
-        logging.error(f"Firebase xatosi: {e}")
-        await message.reply(f"Xato yuz berdi: {e}")
+        logging.error(f"Xato: {e}")
+        await wait_msg.edit_text(f"Xato yuz berdi: {e}")
 
 async def main():
     app = web.Application()
     app.router.add_get('/', handle)
     runner = web.AppRunner(app)
     await runner.setup()
-    
     port = int(os.getenv("PORT", 10000))
     site = web.TCPSite(runner, '0.0.0.0', port)
-    
-    await asyncio.gather(
-        site.start(),
-        dp.start_polling(bot)
-    )
+    await asyncio.gather(site.start(), dp.start_polling(bot))
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("Bot to'xtatildi")
+    asyncio.run(main())
