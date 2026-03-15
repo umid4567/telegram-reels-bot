@@ -30,16 +30,13 @@ async def handle(request):
 
 def get_embed_url(url):
     video_id = ""
-    # YouTube Shorts yoki Video ID sini ajratib olish
     if "shorts/" in url:
         video_id = url.split("shorts/")[1].split("?")[0]
     elif "v=" in url:
         video_id = url.split("v=")[1].split("&")[0]
-    elif "youtu.be/" in url:
-        video_id = url.split("youtu.be/")[1].split("?")[0]
     
     if video_id:
-        # autoplay=1 (avto ijro), loop=1 (takrorlash), playlist=ID (loop ishlashi uchun shart)
+        # Loop va Autoplay mukammal ishlashi uchun playlist parametri shart
         return f"https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1&loop=1&playlist={video_id}&rel=0&controls=1"
     return None
 
@@ -48,11 +45,11 @@ async def start(message: types.Message):
     web_url = "https://umid4567.github.io/telegram-reels-bot/"
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="🎬 Shorts ko'rish", web_app=WebAppInfo(url=web_url)))
-    await message.answer(f"Salom {message.from_user.full_name}!\nYouTube Shorts linkini yuboring.", reply_markup=builder.as_markup())
+    await message.answer(f"Xush kelibsiz!\nYouTube Shorts linkini yuboring.", reply_markup=builder.as_markup())
 
 @dp.message(F.text.contains("http"))
 async def process_link(message: types.Message):
-    if "youtube.com" not in message.text and "youtu.be" not in message.text:
+    if "youtube" not in message.text and "youtu.be" not in message.text:
         await message.reply("Iltimos, faqat YouTube Shorts linkini yuboring!")
         return
 
@@ -67,7 +64,7 @@ async def save_link(callback: types.CallbackQuery):
     cat = callback.data.split("_")[1]
     original_msg = callback.message.reply_to_message
     
-    if not original_msg or not original_msg.text:
+    if not original_msg:
         await callback.message.edit_text("❌ Xatolik yuz berdi.")
         return
 
@@ -94,9 +91,21 @@ async def main():
     port = int(os.getenv("PORT", 10000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     
+    # Konfliktni va eski webhooklarni tozalash
     await bot.delete_webhook(drop_pending_updates=True)
     await site.start()
-    await dp.start_polling(bot)
+    
+    logging.info(f"Bot start port: {port}")
+    
+    try:
+        await dp.start_polling(bot)
+    finally:
+        # Sessiyalarni yopish (Unclosed client session xatosini oldini oladi)
+        await bot.session.close()
+        await runner.cleanup()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        pass
