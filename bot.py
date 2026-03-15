@@ -10,10 +10,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 from datetime import datetime
 
-# 1. Loggingni yoqish (xatolarni ko'rish uchun)
 logging.basicConfig(level=logging.INFO)
 
-# 2. Firebase sozlamalari
+# Firebase
 cred_path = "/opt/render/project/src/firebase-key.json"
 firebase_url = "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/"
 
@@ -21,75 +20,72 @@ if not firebase_admin._apps:
     if os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred, {'databaseURL': firebase_url})
-    else:
-        logging.error("Firebase key topilmadi!")
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Render uchun oddiy web sahifa
 async def handle(request):
-    return web.Response(text="UzReels Bot is active!")
+    return web.Response(text="UzReels Shorts Bot is active!")
 
-# Linkni Embed (pleyer) holatiga keltirish
 def get_embed_url(url):
-    if "youtube.com" in url or "youtu.be" in url:
-        if "shorts/" in url:
-            video_id = url.split("shorts/")[1].split("?")[0]
-            return f"https://www.youtube.com/embed/{video_id}?autoplay=1&rel=0"
-        elif "v=" in url:
-            video_id = url.split("v=")[1].split("&")[0]
-            return f"https://www.youtube.com/embed/{video_id}?autoplay=1"
-    elif "instagram.com" in url:
-        if "/reels/" in url or "/reel/" in url or "/p/" in url:
-            clean_url = url.split("?")[0]
-            if not clean_url.endswith("/"): clean_url += "/"
-            return f"{clean_url}embed/"
-    return url
+    video_id = ""
+    # YouTube Shorts yoki Video ID sini ajratib olish
+    if "shorts/" in url:
+        video_id = url.split("shorts/")[1].split("?")[0]
+    elif "v=" in url:
+        video_id = url.split("v=")[1].split("&")[0]
+    elif "youtu.be/" in url:
+        video_id = url.split("youtu.be/")[1].split("?")[0]
+    
+    if video_id:
+        # autoplay=1 (avto ijro), loop=1 (takrorlash), playlist=ID (loop ishlashi uchun shart)
+        return f"https://www.youtube.com/embed/{video_id}?autoplay=1&mute=1&loop=1&playlist={video_id}&rel=0&controls=1"
+    return None
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
     web_url = "https://umid4567.github.io/telegram-reels-bot/"
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="🎬 UzReels-ni ochish", web_app=WebAppInfo(url=web_url)))
-    await message.answer(f"Salom {message.from_user.full_name}!\nYouTube Shorts yoki Instagram linkini yuboring.", reply_markup=builder.as_markup())
+    builder.row(types.InlineKeyboardButton(text="🎬 Shorts ko'rish", web_app=WebAppInfo(url=web_url)))
+    await message.answer(f"Salom {message.from_user.full_name}!\nYouTube Shorts linkini yuboring.", reply_markup=builder.as_markup())
 
 @dp.message(F.text.contains("http"))
 async def process_link(message: types.Message):
+    if "youtube.com" not in message.text and "youtu.be" not in message.text:
+        await message.reply("Iltimos, faqat YouTube Shorts linkini yuboring!")
+        return
+
     builder = InlineKeyboardBuilder()
     for cat in ["Futbol", "Qiziqarli", "Texno", "Boshqa"]:
         builder.button(text=cat, callback_data=f"save_{cat}")
     builder.adjust(2)
-    await message.reply("Link qabul qilindi. Ruknni tanlang:", reply_markup=builder.as_markup())
+    await message.reply("Ruknni tanlang:", reply_markup=builder.as_markup())
 
 @dp.callback_query(F.data.startswith("save_"))
 async def save_link(callback: types.CallbackQuery):
     cat = callback.data.split("_")[1]
-    # callback.message.reply_to_message orqali asl linkni olamiz
     original_msg = callback.message.reply_to_message
     
     if not original_msg or not original_msg.text:
-        await callback.message.edit_text("❌ Xatolik: Asl xabar topilmadi.")
+        await callback.message.edit_text("❌ Xatolik yuz berdi.")
         return
 
     embed_url = get_embed_url(original_msg.text)
-    video_type = 'youtube' if 'youtube' in embed_url else 'instagram'
     
     try:
         db.reference('videos').push({
             'url': embed_url,
-            'type': video_type,
-            'user': callback.from_user.full_name,
+            'user': callback.from_user.username or callback.from_user.full_name,
             'category': cat,
+            'caption': original_msg.caption or "",
             'date': datetime.now().strftime("%Y-%m-%d %H:%M")
         })
-        await callback.message.edit_text(f"✅ Video '{cat}' rukniga muvaffaqiyatli saqlandi!")
+        await callback.message.edit_text(f"✅ Shorts '{cat}' rukniga saqlandi!")
     except Exception as e:
-        await callback.message.edit_text(f"❌ Firebase xatosi: {e}")
+        await callback.message.edit_text(f"❌ Xato: {e}")
 
 async def main():
-    # Web serverni sozlash (Render uchun)
     app = web.Application()
     app.router.add_get('/', handle)
     runner = web.AppRunner(app)
@@ -98,7 +94,7 @@ async def main():
     port = int(os.getenv("PORT", 10000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     
-    logging.info(f"Bot start port: {port}")
+    await bot.delete_webhook(drop_pending_updates=True)
     await site.start()
     await dp.start_polling(bot)
 
