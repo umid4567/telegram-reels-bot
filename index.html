@@ -22,7 +22,7 @@
         .content-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         video, iframe { width: 100%; height: 100%; border: none; object-fit: cover; }
         
-        /* HIYLA: Instagram/YouTube ustidagi ko'rinmas qatlam */
+        /* HIYLA: Videoni o'rtasini bosganda Instagramga chiqib ketmaslik uchun */
         .video-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 85%; z-index: 5; background: transparent; }
 
         .side-bar { position: absolute; right: 10px; bottom: 120px; display: flex; flex-direction: column; gap: 20px; align-items: center; z-index: 10; }
@@ -105,13 +105,14 @@
                     : `@${item.user}`;
 
                 let mediaContent = '';
-                if (item.url.includes('youtube.com')) {
+                // YouTube Embed tekshiruvi (mute=1 autoplay uchun shart)
+                if (item.url.includes('youtube.com/embed')) {
                     mediaContent = `
-                        <iframe class="yt-fix" src="${item.url}" allow="autoplay; encrypted-media"></iframe>
+                        <iframe class="yt-fix" src="${item.url}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
                         <div class="video-overlay"></div>`;
                 } else if (item.url.includes('instagram.com')) {
                     mediaContent = `
-                        <iframe src="${item.url}" scrolling="no" allowtransparency="true" frameborder="0"></iframe>
+                        <iframe src="${item.url}" scrolling="no" allowtransparency="true" frameborder="0" allow="autoplay"></iframe>
                         <div class="video-overlay"></div>`;
                 } else {
                     mediaContent = `<video src="${item.url}" loop playsinline muted preload="metadata"></video>`;
