@@ -121,41 +121,51 @@
             });
         }
 
-                function initSmartObserver() {
+                        let activePlayers = {}; // Pleyerlarni nazorat qilish uchun
+
+        function initSmartObserver() {
             if (observer) observer.disconnect();
 
             observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const id = entry.target.id.replace('reel-', '');
                     const wrapper = document.getElementById(`video-wrapper-${id}`);
-                    
-                    // Link oxiridan "mute=1" ni olib tashlang yoki "mute=0" qiling
-                    // autoplay=1 bo'lishi shart
-                    const videoUrl = entry.target.dataset.url.replace('mute=1', 'mute=0');
+                    const videoUrl = entry.target.dataset.url;
 
                     if (entry.isIntersecting) {
+                        // Video ekranga kelganda
                         if (!wrapper.querySelector('iframe')) {
-                            // Iframe yaratish
-                            wrapper.innerHTML = `<iframe id="frame-${id}" src="${videoUrl}" allow="autoplay; encrypted-media"></iframe>`;
+                            // enablejsapi=1 va origin parametrlari boshqaruv uchun shart
+                            const finalUrl = videoUrl + "&enablejsapi=1&origin=" + window.location.origin;
+                            wrapper.innerHTML = `<iframe id="frame-${id}" src="${finalUrl}" allow="autoplay; encrypted-media"></iframe>`;
                         }
                     } else {
-                        wrapper.innerHTML = `<div class="loading-placeholder">UzReels...</div>`;
+                        // Video ekrandan chiqishi bilan darhol o'chirish (OVOZNI TO'XTATADI)
+                        if (wrapper.querySelector('iframe')) {
+                            // Oldin pleyerga pauza buyrug'ini yuboramiz
+                            const frame = document.getElementById(`frame-${id}`);
+                            if (frame && frame.contentWindow) {
+                                frame.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                                frame.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+                            }
+                            // Keyin elementni butunlay o'chirib tashlaymiz
+                            wrapper.innerHTML = `<div class="loading-placeholder">UzReels...</div>`;
+                        }
                     }
                 });
-            }, { threshold: 0.6 });
+            }, { 
+                threshold: 0.5 // Video yarmi ko'ringanda ishga tushadi
+            });
 
             document.querySelectorAll('.reel').forEach(reel => observer.observe(reel));
         }
 
-        // MUHIM: Ovoz blokirovkasini yechish uchun ekran bosilganda ishlaydigan funksiya
-        document.body.addEventListener('click', () => {
-            const iframes = document.querySelectorAll('iframe');
-            iframes.forEach(iframe => {
-                // YouTube API orqali ovozni yoqish signali
-                iframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
-                iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-            });
-        }, { once: true }); // Faqat birinchi marta bosilganda ishlaydi
+        // Telegram WebApp yopilganda hamma narsani tozalash
+        tg.onEvent('viewportChanged', function() {
+            if (!tg.isExpanded) {
+                document.querySelectorAll('.content-wrapper').forEach(w => w.innerHTML = '');
+            }
+        });
 
         function like(id) {
             const ref = db.ref(`videos/${id}/likes/${userId}`);
