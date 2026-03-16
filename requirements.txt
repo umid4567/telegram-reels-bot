@@ -2,3 +2,4 @@ aiogram
 requests
 supabase
 firebase-admin
+aiohttp
