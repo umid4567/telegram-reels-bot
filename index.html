@@ -121,22 +121,24 @@
             });
         }
 
-        function initSmartObserver() {
+                function initSmartObserver() {
             if (observer) observer.disconnect();
 
             observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const id = entry.target.id.replace('reel-', '');
                     const wrapper = document.getElementById(`video-wrapper-${id}`);
-                    const videoUrl = entry.target.dataset.url;
+                    
+                    // Link oxiridan "mute=1" ni olib tashlang yoki "mute=0" qiling
+                    // autoplay=1 bo'lishi shart
+                    const videoUrl = entry.target.dataset.url.replace('mute=1', 'mute=0');
 
                     if (entry.isIntersecting) {
-                        // Video ekranga kelganda iframe yaratish (Ovoz yoqiladi)
                         if (!wrapper.querySelector('iframe')) {
-                            wrapper.innerHTML = `<iframe src="${videoUrl}" allow="autoplay; encrypted-media"></iframe>`;
+                            // Iframe yaratish
+                            wrapper.innerHTML = `<iframe id="frame-${id}" src="${videoUrl}" allow="autoplay; encrypted-media"></iframe>`;
                         }
                     } else {
-                        // Video ekrandan chiqishi bilan iframe o'chiriladi (Ovoz 100% o'chadi)
                         wrapper.innerHTML = `<div class="loading-placeholder">UzReels...</div>`;
                     }
                 });
@@ -144,6 +146,16 @@
 
             document.querySelectorAll('.reel').forEach(reel => observer.observe(reel));
         }
+
+        // MUHIM: Ovoz blokirovkasini yechish uchun ekran bosilganda ishlaydigan funksiya
+        document.body.addEventListener('click', () => {
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                // YouTube API orqali ovozni yoqish signali
+                iframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+                iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+            });
+        }, { once: true }); // Faqat birinchi marta bosilganda ishlaydi
 
         function like(id) {
             const ref = db.ref(`videos/${id}/likes/${userId}`);
