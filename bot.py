@@ -65,34 +65,56 @@ async def process_caption(m: types.Message, state: FSMContext):
 async def save_video(call: types.CallbackQuery, state: FSMContext):
     cat = call.data.split("_")[1]
     data = await state.get_data()
-    await call.message.edit_text("⏳ Yuklanmoqda...")
+    
+    # Yuklash boshlanganini ko'rsatish
+    status_msg = await call.message.edit_text("⏳ Yuklanmoqda, iltimos kuting...")
     
     try:
         file = await bot.get_file(data['video_id'])
         content = requests.get(f"https://api.telegram.org/file/bot{TOKEN}/{file.file_path}").content
-        f_name = f"r_{datetime.now().strftime('%M%S')}.mp4"
+        f_name = f"r_{datetime.now().strftime('%H%M%S')}.mp4"
+        
+        # Supabase yuklash
         supabase.storage.from_("videos").upload(f_name, content, {"content-type": "video/mp4"})
-        url = supabase.storage.from_("videos").get_public_url(f_name)
+        url_res = supabase.storage.from_("videos").get_public_url(f_name)
+        
+        # URL formatini tekshirish
+        final_url = url_res.public_url if hasattr(url_res, 'public_url') else str(url_res)
         
         db.reference('videos').push({
-            'file_url': str(url),
+            'file_url': final_url,
             'user': call.from_user.username or call.from_user.full_name,
             'caption': data['caption'],
             'category': cat,
             'channel_link': f"https://t.me/{call.from_user.username}" if call.from_user.username else "https://t.me/telegram"
         })
-        await call.message.answer("✅ Tayyor!")
+        await status_msg.edit_text("✅ Video muvaffaqiyatli UzReels-ga joylandi!")
     except Exception as e:
-        await call.message.answer(f"❌ Xato: {e}")
+        await status_msg.edit_text(f"❌ Xato: {e}")
     await state.clear()
 
-async def handle(r): return web.Response(text="Bot is running!")
+# --- SERVER QISMI ---
+async def handle(request): 
+    return web.Response(text="UzReels Bot is Alive!")
+
 async def main():
+    # 1. Web serverni ishga tushirish (Render to'xtab qolmasligi uchun)
     app = web.Application()
     app.router.add_get("/", handle)
-    runner = web.AppRunner(app); await runner.setup()
-    await web.TCPSite(runner, "0.0.0.0", int(os.environ.get("PORT", 10000))).start()
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.environ.get("PORT", 10000))
+    await web.TCPSite(runner, "0.0.0.0", port).start()
+
+    # 2. Konfliktni oldini olish uchun eski webhooklarni o'chirish
+    await bot.delete_webhook(drop_pending_updates=True)
+    
+    # 3. Polling boshlash
+    logging.info("Bot ishga tushdi...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Bot to'xtatildi.")
