@@ -6,7 +6,7 @@ from datetime import datetime
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
-from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResultVideo
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
@@ -45,14 +45,50 @@ def get_category_keyboard():
 
 @dp.message(CommandStart())
 async def start(m: types.Message):
-    web_url = "https://umid4567.github.io/telegram-reels-bot/"
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🎬 UzReels-ni ochish", web_app=WebAppInfo(url=web_url))]])
-    await m.answer("Salom! Video yuboring va men uni UzReels-ga joylayman.", reply_markup=kb)
+    args = m.text.split()
+    video_id = args[1] if len(args) > 1 else None
+    
+    # Web App linkiga start parametrini qo'shish
+    base_url = "https://umid4567.github.io/telegram-reels-bot/"
+    web_url = f"{base_url}?start={video_id}" if video_id else base_url
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎬 Videoni ko'rish" if video_id else "🎬 UzReels-ni ochish", web_app=WebAppInfo(url=web_url))]
+    ])
+    
+    txt = "Sizga yangi video yuborishdi! Ko'rish uchun bosing 👇" if video_id else "UzReels-ga xush kelibsiz! Video yuboring."
+    await m.answer(txt, reply_markup=kb)
+
+# --- INLINE QUERY ---
+@dp.inline_query()
+async def inline_handler(query: types.InlineQuery):
+    videos_ref = db.reference('videos').get()
+    results = []
+    if videos_ref:
+        video_list = [{"id": k, **v} for k, v in videos_ref.items()]
+        # Qidiruv maydoniga ID yozilgan bo'lsa yoki oxirgi videolar
+        q = query.query.strip()
+        items_to_show = [v for v in video_list if v['id'] == q] if q else video_list[-10:]
+        
+        for item in reversed(items_to_show):
+            # Botga qaytadigan link
+            bot_me = await bot.get_me()
+            share_link = f"https://t.me/{bot_me.username}?start={item['id']}"
+            
+            results.append(InlineQueryResultVideo(
+                id=item['id'],
+                video_url=item['file_url'],
+                mime_type="video/mp4",
+                thumbnail_url="https://raw.githubusercontent.com/umid4567/telegram-reels-bot/main/thumb.jpg",
+                title=item.get('caption', 'UzReels'),
+                caption=f"🎬 {item.get('caption', '')}\n\nKo'rish uchun: {share_link}"
+            ))
+    await query.answer(results, is_personal=True, cache_time=5)
 
 @dp.message(F.video)
 async def process_video(m: types.Message, state: FSMContext):
     await state.update_data(video_id=m.video.file_id)
-    await m.answer("📝 Video uchun qisqacha tavsif yozing:")
+    await m.answer("📝 Video uchun tavsif yozing:")
     await state.set_state(VideoUpload.waiting_for_caption)
 
 @dp.message(VideoUpload.waiting_for_caption)
@@ -65,56 +101,35 @@ async def process_caption(m: types.Message, state: FSMContext):
 async def save_video(call: types.CallbackQuery, state: FSMContext):
     cat = call.data.split("_")[1]
     data = await state.get_data()
-    
-    # Yuklash boshlanganini ko'rsatish
-    status_msg = await call.message.edit_text("⏳ Yuklanmoqda, iltimos kuting...")
+    status = await call.message.edit_text("⏳ Yuklanmoqda...")
     
     try:
         file = await bot.get_file(data['video_id'])
         content = requests.get(f"https://api.telegram.org/file/bot{TOKEN}/{file.file_path}").content
         f_name = f"r_{datetime.now().strftime('%H%M%S')}.mp4"
-        
-        # Supabase yuklash
         supabase.storage.from_("videos").upload(f_name, content, {"content-type": "video/mp4"})
-        url_res = supabase.storage.from_("videos").get_public_url(f_name)
-        
-        # URL formatini tekshirish
-        final_url = url_res.public_url if hasattr(url_res, 'public_url') else str(url_res)
+        url = supabase.storage.from_("videos").get_public_url(f_name)
         
         db.reference('videos').push({
-            'file_url': final_url,
+            'file_url': url.public_url if hasattr(url, 'public_url') else str(url),
             'user': call.from_user.username or call.from_user.full_name,
             'caption': data['caption'],
             'category': cat,
             'channel_link': f"https://t.me/{call.from_user.username}" if call.from_user.username else "https://t.me/telegram"
         })
-        await status_msg.edit_text("✅ Video muvaffaqiyatli UzReels-ga joylandi!")
+        await status.edit_text("✅ UzReels-ga qo'shildi!")
     except Exception as e:
-        await status_msg.edit_text(f"❌ Xato: {e}")
+        await status.edit_text(f"❌ Xato: {e}")
     await state.clear()
 
-# --- SERVER QISMI ---
-async def handle(request): 
-    return web.Response(text="UzReels Bot is Alive!")
-
+async def handle(r): return web.Response(text="Running")
 async def main():
-    # 1. Web serverni ishga tushirish (Render to'xtab qolmasligi uchun)
     app = web.Application()
     app.router.add_get("/", handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    port = int(os.environ.get("PORT", 10000))
-    await web.TCPSite(runner, "0.0.0.0", port).start()
-
-    # 2. Konfliktni oldini olish uchun eski webhooklarni o'chirish
+    runner = web.AppRunner(app); await runner.setup()
+    await web.TCPSite(runner, "0.0.0.0", int(os.environ.get("PORT", 10000))).start()
     await bot.delete_webhook(drop_pending_updates=True)
-    
-    # 3. Polling boshlash
-    logging.info("Bot ishga tushdi...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("Bot to'xtatildi.")
+    asyncio.run(main())
