@@ -20,8 +20,8 @@
         .side-bar { position: absolute; right: 15px; bottom: 120px; z-index: 20; display: flex; flex-direction: column; gap: 25px; align-items: center; }
         .side-icon { background: none; border: none; color: #fff; font-size: 32px; cursor: pointer; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
         .info { position: absolute; bottom: 40px; left: 15px; right: 80px; z-index: 20; pointer-events: none; }
-        .info h3 { margin: 0; font-size: 16px; pointer-events: auto; display: inline-block; cursor: pointer; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 8px; }
-        .info p { margin: 8px 0; font-size: 14px; color: #eee; text-shadow: 1px 1px 2px #000; }
+        .info h3 { margin: 0; font-size: 16px; pointer-events: auto; cursor: pointer; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 8px; }
+        .info p { margin: 8px 0; font-size: 14px; color: #eee; }
         .category-tag { color: #3498db; font-weight: bold; font-size: 12px; }
         .loader { position: absolute; width: 40px; height: 40px; border: 3px solid #333; border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; z-index: 5; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -50,7 +50,22 @@
 
         db.ref('videos').on('value', snap => {
             const data = snap.val() || {};
-            allVideos = Object.entries(data).map(([id, item]) => ({ id, ...item })).reverse();
+            let videos = Object.entries(data).map(([id, item]) => ({ id, ...item }));
+
+            // URL orqali kelgan video ID (Deep link)
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedId = urlParams.get('start');
+
+            if (sharedId) {
+                const sharedVideo = videos.find(v => v.id === sharedId);
+                if (sharedVideo) {
+                    videos = [sharedVideo, ...videos.filter(v => v.id !== sharedId)];
+                }
+            } else {
+                videos.reverse();
+            }
+            
+            allVideos = videos;
             renderVideos(allVideos);
         });
 
@@ -65,7 +80,7 @@
                     <video loop playsinline muted autoplay src="${item.file_url}" onplaying="document.getElementById('loader-${item.id}').style.display='none'"></video>
                     <div class="side-bar">
                         <button class="side-icon" onclick="this.innerHTML = this.innerHTML === '🤍' ? '❤️' : '🤍'">🤍</button>
-                        <button class="side-icon" onclick="shareVideo('${item.file_url}', '${item.caption}')">✈️</button>
+                        <button class="side-icon" onclick="shareVideo('${item.id}', '${item.caption}')">✈️</button>
                     </div>
                     <div class="info">
                         <h3 onclick="tg.openTelegramLink('${item.channel_link}')">@${item.user}</h3>
@@ -84,17 +99,9 @@
             renderVideos(cat === 'Hammasi' ? allVideos : allVideos.filter(v => v.category === cat.toLowerCase()));
         }
 
-        function shareVideo(url, text) {
-    // Tavsif va linkni chiroyli ko'rinishga keltiramiz
-    const shareText = encodeURIComponent(`Ko'ring: ${text}\n${url}`);
-    
-    // Telegram-ning rasmiy ulashish linki
-    const shareUrl = `https://t.me/share/url?url=${url}&text=${encodeURIComponent(text)}`;
-    
-    // Telegram ichida ushbu linkni ochish
-    tg.openTelegramLink(shareUrl);
-}
-
+        function shareVideo(id, text) {
+            tg.switchInlineQuery(id); // Inline query orqali ulashish
+        }
 
         function initObserver() {
             const observer = new IntersectionObserver(entries => {
