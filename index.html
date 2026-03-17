@@ -85,9 +85,16 @@
         }
 
         function shareVideo(url, text) {
-            // Telegram do'stlariga ulashish oynasini ochish
-            tg.switchInlineQuery(`Ko'ring: ${text}\n${url}`);
-        }
+    // Tavsif va linkni chiroyli ko'rinishga keltiramiz
+    const shareText = encodeURIComponent(`Ko'ring: ${text}\n${url}`);
+    
+    // Telegram-ning rasmiy ulashish linki
+    const shareUrl = `https://t.me/share/url?url=${url}&text=${encodeURIComponent(text)}`;
+    
+    // Telegram ichida ushbu linkni ochish
+    tg.openTelegramLink(shareUrl);
+}
+
 
         function initObserver() {
             const observer = new IntersectionObserver(entries => {
