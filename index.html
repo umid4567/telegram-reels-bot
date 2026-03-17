@@ -100,8 +100,15 @@
         }
 
         function shareVideo(id, text) {
-            tg.switchInlineQuery(id); // Inline query orqali ulashish
-        }
+    // Botingiz username'ini bu yerga yozing
+    const botUser = "@Vireels_bot"; 
+    
+    // Telegram-ning rasmiy ulashish oynasini ochish (search-siz)
+    const shareUrl = `https://t.me/share/url?url=https://t.me/${botUser}?start=${id}&text=${encodeURIComponent('🎬 ' + text)}`;
+    
+    tg.openTelegramLink(shareUrl);
+}
+
 
         function initObserver() {
             const observer = new IntersectionObserver(entries => {
