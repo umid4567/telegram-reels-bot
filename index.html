@@ -9,46 +9,25 @@
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; }
-        
-        /* Kategoriya menyusi */
-        #category-bar {
-            position: absolute; top: 10px; left: 0; width: 100%; z-index: 100;
-            display: flex; overflow-x: auto; padding: 10px; gap: 10px;
-            scrollbar-width: none; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-        }
+        #category-bar { position: absolute; top: 10px; left: 0; width: 100%; z-index: 100; display: flex; overflow-x: auto; padding: 10px; gap: 10px; scrollbar-width: none; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); }
         #category-bar::-webkit-scrollbar { display: none; }
-        .cat-btn {
-            background: rgba(255, 255, 255, 0.2); border: none; color: #fff;
-            padding: 6px 15px; border-radius: 20px; white-space: nowrap; font-size: 14px;
-        }
+        .cat-btn { background: rgba(255, 255, 255, 0.2); border: none; color: #fff; padding: 6px 15px; border-radius: 20px; white-space: nowrap; font-size: 14px; }
         .cat-btn.active { background: #fff; color: #000; font-weight: bold; }
-
-        /* Reels konteyner */
         #reels { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
         #reels::-webkit-scrollbar { display: none; }
-        .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; background: #000; }
+        .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; background: #000; display: flex; align-items: center; justify-content: center; }
         video { width: 100%; height: 100%; object-fit: cover; }
-
-        /* Yon paneldagi tugmalar (Like, Share) */
-        .side-bar {
-            position: absolute; right: 15px; bottom: 100px; z-index: 20;
-            display: flex; flex-direction: column; gap: 20px; align-items: center;
-        }
-        .side-icon { background: none; border: none; color: #fff; font-size: 30px; cursor: pointer; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .side-icon.active { color: #ff2d55; }
-
-        /* Ma'lumotlar qismi */
-        .info { position: absolute; bottom: 30px; left: 15px; right: 80px; z-index: 20; pointer-events: none; }
-        .info h3 { margin: 0; font-size: 16px; pointer-events: auto; display: inline-block; cursor: pointer; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 5px; }
-        .info p { margin: 5px 0; font-size: 14px; color: #eee; }
-        .info .category-tag { color: #3498db; font-weight: bold; font-size: 12px; }
-
-        .loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border: 3px solid #333; border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; z-index: 5; }
-        @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        .side-bar { position: absolute; right: 15px; bottom: 120px; z-index: 20; display: flex; flex-direction: column; gap: 25px; align-items: center; }
+        .side-icon { background: none; border: none; color: #fff; font-size: 32px; cursor: pointer; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .info { position: absolute; bottom: 40px; left: 15px; right: 80px; z-index: 20; pointer-events: none; }
+        .info h3 { margin: 0; font-size: 16px; pointer-events: auto; display: inline-block; cursor: pointer; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 8px; }
+        .info p { margin: 8px 0; font-size: 14px; color: #eee; text-shadow: 1px 1px 2px #000; }
+        .category-tag { color: #3498db; font-weight: bold; font-size: 12px; }
+        .loader { position: absolute; width: 40px; height: 40px; border: 3px solid #333; border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; z-index: 5; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-
     <div id="category-bar">
         <button class="cat-btn active" onclick="filterCat('Hammasi', this)">Hammasi</button>
         <button class="cat-btn" onclick="filterCat('Yangiliklar', this)">Yangiliklar</button>
@@ -56,9 +35,7 @@
         <button class="cat-btn" onclick="filterCat('Talim', this)">Ta'lim</button>
         <button class="cat-btn" onclick="filterCat('Texno', this)">Texno</button>
         <button class="cat-btn" onclick="filterCat('Qiziqarli', this)">Qiziqarli</button>
-        <button class="cat-btn" onclick="filterCat('Boshqa', this)">Boshqa</button>
     </div>
-
     <div id="reels"></div>
 
     <script>
@@ -72,12 +49,9 @@
         let allVideos = [];
 
         db.ref('videos').on('value', snap => {
-            allVideos = [];
             const data = snap.val() || {};
-            Object.entries(data).forEach(([id, item]) => {
-                allVideos.push({ id, ...item });
-            });
-            renderVideos(allVideos.reverse());
+            allVideos = Object.entries(data).map(([id, item]) => ({ id, ...item })).reverse();
+            renderVideos(allVideos);
         });
 
         function renderVideos(videos) {
@@ -88,17 +62,15 @@
                 div.className = 'reel';
                 div.innerHTML = `
                     <div class="loader" id="loader-${item.id}"></div>
-                    <video loop playsinline muted autoplay preload="metadata" src="${item.file_url}" onplaying="document.getElementById('loader-${item.id}').style.display='none'"></video>
-                    
+                    <video loop playsinline muted autoplay src="${item.file_url}" onplaying="document.getElementById('loader-${item.id}').style.display='none'"></video>
                     <div class="side-bar">
-                        <button class="side-icon" onclick="toggleLike(this, '${item.id}')">🤍</button>
-                        <button class="side-icon" onclick="shareVideo('${item.file_url}')">✈️</button>
+                        <button class="side-icon" onclick="this.innerHTML = this.innerHTML === '🤍' ? '❤️' : '🤍'">🤍</button>
+                        <button class="side-icon" onclick="shareVideo('${item.file_url}', '${item.caption}')">✈️</button>
                     </div>
-
                     <div class="info">
-                        <h3 onclick="openChannel('${item.channel_link || ''}')">@${item.user || 'uzreels'}</h3>
+                        <h3 onclick="tg.openTelegramLink('${item.channel_link}')">@${item.user}</h3>
                         <p>${item.caption || ''}</p>
-                        <span class="category-tag">#${item.category || 'boshqa'}</span>
+                        <span class="category-tag">#${item.category}</span>
                     </div>
                 `;
                 container.appendChild(div);
@@ -109,38 +81,19 @@
         function filterCat(cat, btn) {
             document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            if (cat === 'Hammasi') {
-                renderVideos(allVideos);
-            } else {
-                const filtered = allVideos.filter(v => v.category === cat.toLowerCase());
-                renderVideos(filtered);
-            }
+            renderVideos(cat === 'Hammasi' ? allVideos : allVideos.filter(v => v.category === cat.toLowerCase()));
         }
 
-        function toggleLike(btn, id) {
-            btn.classList.toggle('active');
-            btn.innerHTML = btn.classList.contains('active') ? '❤️' : '🤍';
-            // Like ma'lumotini Firebase-ga saqlash mumkin (ixtiyoriy)
-        }
-
-        function shareVideo(url) {
-            tg.switchInlineQuery(url); // Videoni Telegram do'stlarga yuborish
-        }
-
-        function openChannel(link) {
-            if (link) tg.openTelegramLink(link);
+        function shareVideo(url, text) {
+            // Telegram do'stlariga ulashish oynasini ochish
+            tg.switchInlineQuery(`Ko'ring: ${text}\n${url}`);
         }
 
         function initObserver() {
             const observer = new IntersectionObserver(entries => {
                 entries.forEach(entry => {
                     const v = entry.target.querySelector('video');
-                    if (entry.isIntersecting) {
-                        v.play().catch(() => {});
-                        v.muted = false; // Ekranga kelgan videoni ovozi bilan qo'yish
-                    } else {
-                        v.pause();
-                    }
+                    if (entry.isIntersecting) { v.play(); v.muted = false; } else { v.pause(); }
                 });
             }, { threshold: 0.7 });
             document.querySelectorAll('.reel').forEach(r => observer.observe(r));
