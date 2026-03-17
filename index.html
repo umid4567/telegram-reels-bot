@@ -3,149 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels - Uzun va Sifatli</title>
+    <title>UzReels Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
     <style>
-        /* Asosiy dizayn */
-        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
+        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; }
         
-        #reels { 
-            height: 100vh; 
-            overflow-y: scroll; 
-            scroll-snap-type: y mandatory; 
-            scrollbar-width: none; 
-            -ms-overflow-style: none; 
+        /* Kategoriya menyusi */
+        #category-bar {
+            position: absolute; top: 10px; left: 0; width: 100%; z-index: 100;
+            display: flex; overflow-x: auto; padding: 10px; gap: 10px;
+            scrollbar-width: none; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
         }
+        #category-bar::-webkit-scrollbar { display: none; }
+        .cat-btn {
+            background: rgba(255, 255, 255, 0.2); border: none; color: #fff;
+            padding: 6px 15px; border-radius: 20px; white-space: nowrap; font-size: 14px;
+        }
+        .cat-btn.active { background: #fff; color: #000; font-weight: bold; }
+
+        /* Reels konteyner */
+        #reels { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
         #reels::-webkit-scrollbar { display: none; }
+        .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; background: #000; }
+        video { width: 100%; height: 100%; object-fit: cover; }
 
-        .reel { 
-            height: 100vh; 
-            width: 100vw; 
-            scroll-snap-align: start; 
-            position: relative; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            background: #000;
+        /* Yon paneldagi tugmalar (Like, Share) */
+        .side-bar {
+            position: absolute; right: 15px; bottom: 100px; z-index: 20;
+            display: flex; flex-direction: column; gap: 20px; align-items: center;
         }
-
-        video { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            z-index: 2;
-        }
-
-        /* Yuklanish animatsiyasi (Sust ishlashini bildirmaslik uchun) */
-        .loader {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            border: 4px solid #333;
-            border-top: 4px solid #fff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            z-index: 1;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        .side-icon { background: none; border: none; color: #fff; font-size: 30px; cursor: pointer; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .side-icon.active { color: #ff2d55; }
 
         /* Ma'lumotlar qismi */
-        .info { 
-            position: absolute; 
-            bottom: 50px; 
-            left: 15px; 
-            z-index: 10; 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.9); 
-            pointer-events: none;
-        }
-        .info h3 { margin: 0 0 5px 0; font-size: 1.1rem; color: #fff; }
-        .info p { margin: 0; font-size: 0.9rem; color: #ddd; }
+        .info { position: absolute; bottom: 30px; left: 15px; right: 80px; z-index: 20; pointer-events: none; }
+        .info h3 { margin: 0; font-size: 16px; pointer-events: auto; display: inline-block; cursor: pointer; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 5px; }
+        .info p { margin: 5px 0; font-size: 14px; color: #eee; }
+        .info .category-tag { color: #3498db; font-weight: bold; font-size: 12px; }
 
-        .overlay { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            z-index: 5; 
-            background: linear-gradient(to bottom, transparent 70%, rgba(0,0,0,0.5));
-        }
+        .loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border: 3px solid #333; border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; z-index: 5; }
+        @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
     </style>
 </head>
 <body>
+
+    <div id="category-bar">
+        <button class="cat-btn active" onclick="filterCat('Hammasi', this)">Hammasi</button>
+        <button class="cat-btn" onclick="filterCat('Yangiliklar', this)">Yangiliklar</button>
+        <button class="cat-btn" onclick="filterCat('Yumor', this)">Yumor</button>
+        <button class="cat-btn" onclick="filterCat('Talim', this)">Ta'lim</button>
+        <button class="cat-btn" onclick="filterCat('Texno', this)">Texno</button>
+        <button class="cat-btn" onclick="filterCat('Qiziqarli', this)">Qiziqarli</button>
+        <button class="cat-btn" onclick="filterCat('Boshqa', this)">Boshqa</button>
+    </div>
+
     <div id="reels"></div>
 
     <script>
-        // WebApp-ni kengaytirish
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const firebaseConfig = {
-            databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/"
-        };
+        const firebaseConfig = { databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Ma'lumotlarni olish
+        let allVideos = [];
+
         db.ref('videos').on('value', snap => {
+            allVideos = [];
+            const data = snap.val() || {};
+            Object.entries(data).forEach(([id, item]) => {
+                allVideos.push({ id, ...item });
+            });
+            renderVideos(allVideos.reverse());
+        });
+
+        function renderVideos(videos) {
             const container = document.getElementById('reels');
             container.innerHTML = '';
-            const data = snap.val() || {};
-            
-            Object.entries(data).reverse().forEach(([id, item]) => {
+            videos.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'reel';
-                // unique ID orqali loader-ni boshqarish
-                const videoId = `video-${id}`;
-                const loaderId = `loader-${id}`;
-
                 div.innerHTML = `
-                    <div class="loader" id="${loaderId}"></div>
-                    <video 
-                        id="${videoId}"
-                        loop 
-                        playsinline 
-                        muted 
-                        autoplay 
-                        preload="metadata"
-                        src="${item.file_url}"
-                        onplaying="document.getElementById('${loaderId}').style.display='none'"
-                    ></video>
-                    <div class="overlay"></div>
+                    <div class="loader" id="loader-${item.id}"></div>
+                    <video loop playsinline muted autoplay preload="metadata" src="${item.file_url}" onplaying="document.getElementById('loader-${item.id}').style.display='none'"></video>
+                    
+                    <div class="side-bar">
+                        <button class="side-icon" onclick="toggleLike(this, '${item.id}')">🤍</button>
+                        <button class="side-icon" onclick="shareVideo('${item.file_url}')">✈️</button>
+                    </div>
+
                     <div class="info">
-                        <h3>@${item.user}</h3>
+                        <h3 onclick="openChannel('${item.channel_link || ''}')">@${item.user || 'uzreels'}</h3>
                         <p>${item.caption || ''}</p>
+                        <span class="category-tag">#${item.category || 'boshqa'}</span>
                     </div>
                 `;
                 container.appendChild(div);
             });
             initObserver();
-        });
+        }
 
-        // Ovozni yoqish (birinchi teginishda)
-        document.body.onclick = () => {
-            document.querySelectorAll('video').forEach(v => v.muted = false);
-        };
+        function filterCat(cat, btn) {
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (cat === 'Hammasi') {
+                renderVideos(allVideos);
+            } else {
+                const filtered = allVideos.filter(v => v.category === cat.toLowerCase());
+                renderVideos(filtered);
+            }
+        }
 
-        // Faqat ko'rinayotgan videoni qo'yish (Sustlikni oldini oladi)
+        function toggleLike(btn, id) {
+            btn.classList.toggle('active');
+            btn.innerHTML = btn.classList.contains('active') ? '❤️' : '🤍';
+            // Like ma'lumotini Firebase-ga saqlash mumkin (ixtiyoriy)
+        }
+
+        function shareVideo(url) {
+            tg.switchInlineQuery(url); // Videoni Telegram do'stlarga yuborish
+        }
+
+        function openChannel(link) {
+            if (link) tg.openTelegramLink(link);
+        }
+
         function initObserver() {
             const observer = new IntersectionObserver(entries => {
                 entries.forEach(entry => {
                     const v = entry.target.querySelector('video');
                     if (entry.isIntersecting) {
                         v.play().catch(() => {});
+                        v.muted = false; // Ekranga kelgan videoni ovozi bilan qo'yish
                     } else {
                         v.pause();
                     }
                 });
             }, { threshold: 0.7 });
-
             document.querySelectorAll('.reel').forEach(r => observer.observe(r));
         }
     </script>
