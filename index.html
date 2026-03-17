@@ -100,17 +100,19 @@
         }
 
         function shareVideo(id, text) {
-    // Botingizning username-ini aynan yozing (@ belgisiz)
-    const botUser = "Vireels_bot"; 
+    // DIQQAT: Username oldida @ belgisini qo'ymang!
+    const botUsername = "Vireels_bot"; 
     
-    // Telegram ulashish linki formati
-    // url: botga olib kiruvchi start linki
-    // text: video tagida chiqadigan tavsif
-    const shareUrl = `https://t.me/share/url?url=https://t.me/${botUser}?start=${id}&text=${encodeURIComponent('🎬 ' + (text || 'Ajoyib video!'))}`;
+    // Deep link yaratish
+    const deepLink = `https://t.me/${botUsername}?start=${id}`;
+    const shareMsg = encodeURIComponent(`🎬 ${text || 'Ajoyib video!'}\n\nKo'rish uchun bosing:`);
     
-    // Web App orqali linkni ochish
-    tg.openTelegramLink(shareUrl);
+    // To'liq ulashish linki
+    const fullShareUrl = `https://t.me/share/url?url=${deepLink}&text=${shareMsg}`;
+    
+    tg.openTelegramLink(fullShareUrl);
 }
+
 
 
 
