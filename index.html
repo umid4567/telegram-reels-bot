@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels: Galaxy Edition</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
+    <title>UzReels</title>
     <style>
         body { 
             margin: 0; 
             height: 100vh;
-            background: #000;
+            /* MUHIM: Yagona va o'zgarmas fon rasmi */
+            background-image: url('https://w0.peakpx.com/wallpaper/424/67/wallpaper-outer-space-planets-galaxies-4k.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed; /* Fon rasmini qotirish */
             color: #fff; 
             font-family: -apple-system, sans-serif; 
             overflow: hidden; 
@@ -29,34 +30,22 @@
             height: 100vh; 
             width: 100vw; 
             scroll-snap-align: start; 
-            position: relative; 
             display: flex; 
             justify-content: center;
             align-items: center;
-            overflow: hidden;
         }
 
-        /* Tizim konteyneri markazda turishi uchun */
-        .system-container {
-            position: relative;
-            width: 320px;
-            height: 450px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        /* VIDEO: TIKKA TUHUM SHAKLI */
         .video-wrapper {
             position: relative;
-            width: 240px; 
-            height: 320px; /* Balandroq qilib tuhum shakli berildi */
-            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; /* Tuxumsimon egrilik */
+            width: 80vw; 
+            height: 80vw;
+            max-width: 400px;
+            max-height: 400px;
+            border-radius: 50%;
             overflow: hidden;
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
-            border: 4px solid #fff;
+            box-shadow: 0 0 50px rgba(0, 212, 255, 0.5);
+            border: 5px solid #fff;
             background: #000;
-            z-index: 100;
         }
         
         video { 
@@ -65,145 +54,58 @@
             object-fit: cover;
         }
 
-        /* ORBITALAR */
-        .orbit {
-            position: absolute;
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 50%;
-            pointer-events: none;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        /* SAYYORA KONTEYNERI (AYLANISH UCHUN) */
-        .planet-holder {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform-origin: 0 0;
-            animation: rotateOrbit linear infinite;
-        }
-
-        @keyframes rotateOrbit {
-            from { transform: rotate(0deg) translate(-50%, -50%); }
-            to { transform: rotate(360deg) translate(-50%, -50%); }
-        }
-
-        .planet {
-            position: absolute;
-            border-radius: 50%;
-            background-size: cover;
-            box-shadow: 0 0 10px rgba(255,255,255,0.3);
-        }
-
-        /* MA'LUMOTLAR */
         .info-panel {
             position: absolute;
             bottom: 30px;
-            width: 85%;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 15px;
             text-align: center;
-            z-index: 200;
-            border: 1px solid rgba(255,255,255,0.1);
         }
         .info-panel h3 { margin: 0; color: #ffca28; font-size: 18px; }
         .info-panel p { margin: 5px 0 0; font-size: 14px; opacity: 0.8; }
-
-        .btn-share {
-            position: absolute;
-            right: 20px;
-            bottom: 120px;
-            width: 50px; height: 50px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; border: none; color: #fff; z-index: 200;
-        }
     </style>
 </head>
 <body>
-    <div id="reels"></div>
+    <div id="reels">
+        <div class="reel">
+            <div class="video-wrapper">
+                <video loop playsinline muted autoplay src="https://www.w3schools.com/html/mov_bbb.mp4"></video>
+            </div>
+            <div class="info-panel">
+                <h3>@Kattakurgan_Life</h3>
+                <p>Kattakurgan ko'chalari!</p>
+            </div>
+        </div>
+
+        <div class="reel">
+            <div class="video-wrapper">
+                <video loop playsinline muted src="https://www.w3schools.com/html/movie.mp4"></video>
+            </div>
+            <div class="info-panel">
+                <h3>@UzReels</h3>
+                <p>Ajoyib tabiat manzarasi.</p>
+            </div>
+        </div>
+    </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        const firebaseConfig = { databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/" };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        // Sayyoralar (Tezliklar sekinlashtirildi: 20s - 100s)
-        const planets = [
-            { name: 'moon', size: 12, dist: 150, speed: '20s', img: 'https://cdn-icons-png.flaticon.com/512/115/115867.png' },
-            { name: 'mars', size: 20, dist: 190, speed: '35s', img: 'https://cdn-icons-png.flaticon.com/512/3590/3590302.png' },
-            { name: 'jupiter', size: 35, dist: 240, speed: '50s', img: 'https://cdn-icons-png.flaticon.com/512/3590/3590450.png' },
-            { name: 'saturn', size: 30, dist: 300, speed: '75s', img: 'https://cdn-icons-png.flaticon.com/512/3590/3590469.png' },
-            { name: 'neptune', size: 25, dist: 360, speed: '100s', img: 'https://cdn-icons-png.flaticon.com/512/3590/3590429.png' }
-        ];
-
-        db.ref('videos').on('value', snap => {
-            const data = snap.val() || {};
-            const videoList = Object.entries(data).map(([id, item]) => ({ id, ...item })).reverse();
-            render(videoList);
-        });
-
-        function render(videos) {
-            const container = document.getElementById('reels');
-            container.innerHTML = '';
-            videos.forEach(item => {
-                const reel = document.createElement('div');
-                reel.className = 'reel';
-                
-                let spaceStuff = '';
-                planets.forEach(p => {
-                    // Orbita chizig'i
-                    spaceStuff += `<div class="orbit" style="width:${p.dist*2}px; height:${p.dist*2}px;"></div>`;
-                    // Sayyora
-                    spaceStuff += `
-                    <div class="planet-holder" style="animation-duration: ${p.speed}; width:${p.dist*2}px; height:${p.dist*2}px;">
-                        <div class="planet" style="
-                            width:${p.size}px; height:${p.size}px; 
-                            left: 100%; top: 50%; transform: translate(-50%, -50%);
-                            background-image: url('${p.img}');
-                        "></div>
-                    </div>`;
-                });
-
-                reel.innerHTML = `
-                    <div class="system-container">
-                        <div class="video-wrapper">
-                            <video id="vid-${item.id}" loop playsinline muted src="${item.file_url}"></video>
-                        </div>
-                        ${spaceStuff}
-                    </div>
-                    <div class="info-panel">
-                        <h3 onclick="tg.openTelegramLink('${item.channel_link}')">@${item.user}</h3>
-                        <p>${item.caption || ''}</p>
-                    </div>
-                    <button class="btn-share" onclick="share('${item.id}', '${item.caption}')">✈️</button>
-                `;
-                container.appendChild(reel);
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                const video = entry.target.querySelector('video');
+                if (entry.isIntersecting) {
+                    video.play();
+                } else {
+                    video.pause();
+                    video.currentTime = 0;
+                }
             });
-            startObserver();
-        }
+        }, { threshold: 0.8 });
 
-        function startObserver() {
-            const observer = new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    const v = entry.target.querySelector('video');
-                    if (entry.isIntersecting) { v.play(); v.muted = false; }
-                    else { v.pause(); v.currentTime = 0; }
-                });
-            }, { threshold: 0.8 });
-            document.querySelectorAll('.reel').forEach(r => observer.observe(r));
-        }
-
-        function share(id, text) {
-            const url = `https://t.me/Vireels_bot?start=${id}`;
-            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${encodeURIComponent(text)}`);
-        }
+        document.querySelectorAll('.reel').forEach(reel => observer.observe(reel));
     </script>
 </body>
 </html>
