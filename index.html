@@ -3,27 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TgRound Liquid Edition</title>
+    <title>TgRound Space Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
     <style>
-        /* Jonli fon */
+        /* 1. Chuqur kosmos foni */
         body { 
             margin: 0; 
             height: 100vh;
-            background: linear-gradient(-45deg, #2c3e50, #4ca1af, #2c3e50, #000);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
+            background: #000 url('https://www.transparenttextures.com/patterns/stardust.png'); /* Yulduzli chang */
             color: #fff; 
             font-family: -apple-system, sans-serif; 
             overflow: hidden; 
-        }
-
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
         }
         
         #reels { 
@@ -31,6 +23,8 @@
             overflow-y: scroll; 
             scroll-snap-type: y mandatory; 
             scrollbar-width: none; 
+            position: relative;
+            z-index: 10;
         }
         #reels::-webkit-scrollbar { display: none; }
         
@@ -43,9 +37,10 @@
             flex-direction: column;
             align-items: center; 
             justify-content: center; 
+            overflow: hidden; /* Sayyoralar chetga chiqmasligi uchun */
         }
         
-        /* Video wrapper */
+        /* 2. Video wrapper (Kosmik kema oynasi kabi) */
         .video-wrapper {
             position: relative;
             width: 85vw; 
@@ -53,11 +48,11 @@
             max-width: 400px;
             max-height: 400px;
             border-radius: 50%;
-            overflow: visible; 
-            box-shadow: 0 0 50px rgba(255,255,255,0.1);
-            border: 4px solid rgba(255,255,255,0.8);
+            overflow: hidden; /* Videoni dumaloq qilish */
+            box-shadow: 0 0 50px rgba(0,212,255,0.3); /* Moviy nur */
+            border: 5px solid rgba(255,255,255,0.9);
             background: #000;
-            z-index: 20;
+            z-index: 30; /* Sayyoralardan baland */
         }
         
         video { 
@@ -65,54 +60,70 @@
             height: 100%; 
             object-fit: cover; 
             border-radius: 50%;
-            position: relative;
-            z-index: 25;
         }
 
-        /* Suyuq metall tomchilari (Blob elementlar) */
-        .blob {
+        /* 3. Suzuvchi kosmik elementlar */
+        .space-item {
             position: absolute;
-            background: linear-gradient(135deg, #e6e6e6 0%, #ffffff 50%, #a6a6a6 100%);
-            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.2), 5px 5px 15px rgba(0,0,0,0.3);
-            z-index: 10;
-            filter: blur(1px);
-            /* Suyuq shakl berish uchun */
-            border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.7;
+            z-index: 20; /* Video orqasida, lekin fondan baland */
+            pointer-events: none;
+            /* Suzish animatsiyasi */
+            animation: floatSpace 20s linear infinite;
         }
 
-        /* Ma'lumotlar */
-        .info-bubble {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 25px;
-            padding: 15px 25px;
-            width: 75%;
-            max-width: 350px;
-            margin-top: 40px;
-            text-align: center;
-            z-index: 30;
+        /* Sayyoralar rasmlari (PNG, shaffof fonli) */
+        .planet-1 { background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Nasa_blue_marble.png/640px-Nasa_blue_marble.png'); } /* Yer */
+        .planet-2 { background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Earth_Eastern_Hemisphere.jpg/640px-Earth_Eastern_Hemisphere.jpg'); } /* Yer boshqa tarafdan */
+        .planet-3 { background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Full_Moon_Luc Viatour.jpg/640px-Full_Moon_Luc Viatour.jpg'); } /* Oy */
+        .nebula { background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Orion_Nebula_-_Hubble_2006_mosaic_1800.jpg/640px-Orion_Nebula_-_Hubble_2006_mosaic_1800.jpg'); opacity: 0.4; filter: blur(2px); } /* Tumanlik */
+
+        @keyframes floatSpace {
+            0% { transform: translate(var(--tw-x-start), var(--tw-y-start)) rotate(0deg) scale(var(--tw-scale-start)); opacity: 0; }
+            10% { opacity: 0.7; }
+            50% { transform: translate(var(--tw-x-mid), var(--tw-y-mid)) rotate(180deg) scale(var(--tw-scale-mid)); opacity: 0.7; }
+            90% { opacity: 0.7; }
+            100% { transform: translate(var(--tw-x-end), var(--tw-y-end)) rotate(360deg) scale(var(--tw-scale-start)); opacity: 0; }
         }
-        .info-bubble h3 { margin: 0; font-size: 18px; color: #fff; cursor: pointer; }
-        .info-bubble p { margin: 8px 0 0; font-size: 14px; color: #ccc; }
+
+        /* 4. Kosmik uslubdagi ma'lumotlar */
+        .info-bubble {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 12px 20px;
+            width: 80%;
+            max-width: 380px;
+            margin-top: 35px;
+            text-align: center;
+            z-index: 40; /* Eng ustida */
+        }
+        .info-bubble h3 { margin: 0; font-size: 18px; color: #00d4ff; cursor: pointer; text-shadow: 0 0 10px rgba(0,212,255,0.5); }
+        .info-bubble p { margin: 8px 0 0; font-size: 15px; color: #fff; font-weight: 500; }
         
+        /* Ulashish tugmasi */
         .side-actions {
             position: absolute;
             right: 20px;
             bottom: 40px;
-            z-index: 40;
+            z-index: 50;
         }
         .action-btn {
-            background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.3);
             width: 55px;
             height: 55px;
             border-radius: 50%;
-            font-size: 24px;
+            font-size: 26px;
             color: #fff;
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
+            text-shadow: 0 0 10px #fff;
         }
     </style>
 </head>
@@ -123,12 +134,14 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        // FIREBASE SOZLAMALARI
         const firebaseConfig = { databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let allVideos = [];
         const botUsername = "Vireels_bot"; 
+        const spaceItems = ['planet-1', 'planet-2', 'planet-3', 'nebula'];
 
         db.ref('videos').on('value', snap => {
             const data = snap.val() || {};
@@ -145,35 +158,40 @@
                 const div = document.createElement('div');
                 div.className = 'reel';
                 
-                // Metall tomchilarini yaratish
-                let blobsHtml = '';
-                const numBlobs = 6; // 6 ta asosiy tomchi
+                // Suzuvchi kosmik elementlarni yaratish
+                let spaceHtml = '';
+                const numItems = 5; // Har bir video orqasida 5 ta element
 
-                for (let i = 0; i < numBlobs; i++) {
-                    const angle = (i / numBlobs) * Math.PI * 2;
-                    const size = 60 + Math.random() * 80; // Har xil hajm
-                    const dist = 160 + Math.random() * 40; // Masofa
+                for (let i = 0; i < numItems; i++) {
+                    const type = spaceItems[Math.floor(Math.random() * spaceItems.length)];
+                    const size = type === 'nebula' ? (150 + Math.random()*200) : (50 + Math.random()*100);
                     
-                    // Har bir tomchi uchun tasodifiy suyuq shakl
-                    const r1 = 30 + Math.random() * 40;
-                    const r2 = 30 + Math.random() * 40;
-                    const r3 = 30 + Math.random() * 40;
-                    const r4 = 30 + Math.random() * 40;
+                    // Harakat traektoriyasi (Random)
+                    const xStart = (Math.random() - 0.5) * 100 + 'vw';
+                    const yStart = (Math.random() - 0.5) * 100 + 'vh';
+                    const xMid = (Math.random() - 0.5) * 150 + 'vw';
+                    const yMid = (Math.random() - 0.5) * 150 + 'vh';
+                    const xEnd = (Math.random() - 0.5) * 100 + 'vw';
+                    const yEnd = (Math.random() - 0.5) * 100 + 'vh';
+                    const scaleStart = 0.5 + Math.random()*0.5;
+                    const scaleMid = 1.0 + Math.random()*0.5;
 
-                    blobsHtml += `<div class="blob" style="
+                    spaceHtml += `<div class="space-item ${type}" style="
                         width: ${size}px; height: ${size}px;
-                        left: calc(50% + ${Math.cos(angle)*dist}px - ${size/2}px);
-                        top: calc(50% + ${Math.sin(angle)*dist}px - ${size/2}px);
-                        border-radius: ${r1}% ${100-r1}% ${r2}% ${100-r2}% / ${r3}% ${r4}% ${100-r4}% ${100-r3}%;
-                        transform: rotate(${Math.random()*360}deg);
+                        --tw-x-start: ${xStart}; --tw-y-start: ${yStart};
+                        --tw-x-mid: ${xMid}; --tw-y-mid: ${yMid};
+                        --tw-x-end: ${xEnd}; --tw-y-end: ${yEnd};
+                        --tw-scale-start: ${scaleStart}; --tw-scale-mid: ${scaleMid};
+                        animation-duration: ${15 + Math.random()*15}s; /* 15-30 soniya */
+                        animation-delay: ${Math.random()*10}s;
                     "></div>`;
                 }
 
                 div.innerHTML = `
                     <div class="video-wrapper" ondblclick="handleDoubleTap(this)">
                         <video id="vid-${item.id}" loop playsinline muted preload="metadata" src="${item.file_url}"></video>
-                        ${blobsHtml}
                     </div>
+                    ${spaceHtml} /* Sayyoralar video orqasida suzadi */
                     
                     <div class="info-bubble">
                         <h3 onclick="tg.openTelegramLink('${item.channel_link}')">@${item.user}</h3>
@@ -213,8 +231,8 @@
 
         function handleDoubleTap(element) {
             const heart = document.createElement('div');
-            heart.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:100px;z-index:50;color:#fff;opacity:0;transition:0.4s;pointer-events:none;text-shadow:0 0 20px #fff;';
-            heart.innerHTML = '🤍';
+            heart.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px;z-index:60;color:#00d4ff;opacity:0;transition:0.4s;pointer-events:none;text-shadow:0 0 20px #00d4ff;';
+            heart.innerHTML = '💙'; // Kosmik moviy yurakcha
             element.appendChild(heart);
             setTimeout(() => { heart.style.opacity='1'; heart.style.transform='translate(-50%,-50%) scale(1.3)'; }, 20);
             setTimeout(() => { heart.style.opacity='0'; heart.style.transform='translate(-50%,-50%) scale(1)'; }, 700);
