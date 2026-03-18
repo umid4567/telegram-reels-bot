@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels: Yer Tizimi</title>
+    <title>UzReels: Yer Tizimi Ultra</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
@@ -51,7 +51,7 @@
             z-index: 20;
         }
         
-        /* 3. Markaziy Dumaloq Video - "YER" (Earth) */
+        /* 3. Markaziy Tizim: "YER" (Earth) va Video */
         .video-wrapper {
             position: relative;
             width: 75vw; /* Ekranning 75% kengligida */
@@ -65,6 +65,9 @@
             border: 6px solid #fff;
             background: #000;
             z-index: 30; /* Sayyoralardan baland */
+            
+            /* DUMALOQ SHAKLGA MOSLASHISH */
+            border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
         }
         
         video { 
@@ -90,6 +93,9 @@
             pointer-events: none;
             /* Orbita bo'ylab aylanish animatsiyasi */
             animation: revolvePlanet linear infinite;
+            
+            /* TUHUM SHAKLIDAY CHUZULISH EFFEKTI (Tepaga va pastga) */
+            animation: stretchPlanet 5s ease-in-out infinite alternate;
         }
 
         .planet {
@@ -126,6 +132,12 @@
         @keyframes selfRotatePlanet {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+
+        /* Tuhum shakliday chuzulish animatsiyasi */
+        @keyframes stretchPlanet {
+            from { transform: scale(1); }
+            to { transform: scale(1.1, 1); } /* Tepaga va pastga chuzulish */
         }
 
         /* 6. Kosmik uslubdagi ma'lumotlar */
@@ -183,14 +195,14 @@
         
         // Sayyoralar Ma'lumotlar Bazasi (PNG, shaffof fonli)
         const planetsData = [
-            { name: 'moon', size: 15, orbit: 190, speed: 10, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Full_Moon_Luc Viatour.jpg/120px-Full_Moon_Luc Viatour.jpg', shadow: 'rgba(200,200,200,0.3)' }, // Oy
-            { name: 'mercury', size: 18, orbit: 230, speed: 15, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Mercury_in_true_color.jpg/120px-Mercury_in_true_color.jpg', shadow: 'rgba(169,169,169,0.3)' },
-            { name: 'venus', size: 24, orbit: 270, speed: 20, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Venus_from_Mariner_10.jpg/120px-Venus_from_Mariner_10.jpg', shadow: 'rgba(255,223,196,0.3)' },
-            { name: 'mars', size: 22, orbit: 310, speed: 25, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Mars_Valles_Marineris.jpeg/120px-Mars_Valles_Marineris.jpeg', shadow: 'rgba(255,100,100,0.3)' },
-            { name: 'jupiter', size: 50, orbit: 380, speed: 35, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Jupiter_and_its_shrunken_Great_Red_Spot.jpg/120px-Jupiter_and_its_shrunken_Great_Red_Spot.jpg', shadow: 'rgba(210,180,140,0.3)' },
-            { name: 'saturn', size: 45, orbit: 460, speed: 45, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Saturn_during_Equinox.jpg/120px-Saturn_during_Equinox.jpg', shadow: 'rgba(238,232,170,0.3)' }, // Halqali
-            { name: 'uranus', size: 35, orbit: 530, speed: 60, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Uranus2.jpg/120px-Uranus2.jpg', shadow: 'rgba(173,216,230,0.3)' },
-            { name: 'neptune', size: 34, orbit: 590, speed: 80, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Neptune_Full.jpg/120px-Neptune_Full.jpg', shadow: 'rgba(72,61,139,0.3)' }
+            { name: 'moon', size: 15, orbit: 190, speed: 20, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Full_Moon_Luc Viatour.jpg/120px-Full_Moon_Luc Viatour.jpg', shadow: 'rgba(200,200,200,0.3)' }, // Oy
+            { name: 'mercury', size: 18, orbit: 230, speed: 30, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Mercury_in_true_color.jpg/120px-Mercury_in_true_color.jpg', shadow: 'rgba(169,169,169,0.3)' },
+            { name: 'venus', size: 24, orbit: 270, speed: 40, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Venus_from_Mariner_10.jpg/120px-Venus_from_Mariner_10.jpg', shadow: 'rgba(255,223,196,0.3)' },
+            { name: 'mars', size: 22, orbit: 310, speed: 50, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Mars_Valles_Marineris.jpeg/120px-Mars_Valles_Marineris.jpeg', shadow: 'rgba(255,100,100,0.3)' },
+            { name: 'jupiter', size: 50, orbit: 380, speed: 70, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Jupiter_and_its_shrunken_Great_Red_Spot.jpg/120px-Jupiter_and_its_shrunken_Great_Red_Spot.jpg', shadow: 'rgba(210,180,140,0.3)' },
+            { name: 'saturn', size: 45, orbit: 460, speed: 90, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Saturn_during_Equinox.jpg/120px-Saturn_during_Equinox.jpg', shadow: 'rgba(238,232,170,0.3)' }, // Halqali
+            { name: 'uranus', size: 35, orbit: 530, speed: 120, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Uranus2.jpg/120px-Uranus2.jpg', shadow: 'rgba(173,216,230,0.3)' },
+            { name: 'neptune', size: 34, orbit: 590, speed: 160, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Neptune_Full.jpg/120px-Neptune_Full.jpg', shadow: 'rgba(72,61,139,0.3)' }
         ];
 
         db.ref('videos').on('value', snap => {
@@ -221,7 +233,7 @@
                     // Sayyora va uning aylanishi
                     planetsHtml += `<div class="planet-container" style="
                         width: ${planet.orbit}px; height: ${planet.orbit}px;
-                        animation-duration: ${planet.speed}s; /* Har xil tezlik */
+                        animation-duration: ${planet.speed}s; /* Har xil sekinroq tezlik */
                         animation-delay: -${Math.random()*planet.speed}s; /* Har xil boshlanish nuqtasi */
                     ">
                         <div class="planet ${planet.name}" style="
