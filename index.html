@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels: 3D Chain Cube</title>
+    <title>UzReels: Premium 3D Chain</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
     <style>
+        /* 1. Umumiy Dizayn */
         body { 
             margin: 0; 
             height: 100vh;
-            background: #000;
-            font-family: -apple-system, sans-serif; 
+            background: #000; /* Video orqasi qora */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             overflow: hidden; 
         }
         
-        /* 1. Asosiy 3D Sahnasi */
         #reels { 
             height: 100vh; 
             width: 100vw;
             overflow-y: scroll; 
             scroll-snap-type: y mandatory; 
             scrollbar-width: none; 
-            perspective: 2000px; /* Chuqur 3D effekt */
+            perspective: 2000px; /* 3D effekt chuqurligi */
         }
         #reels::-webkit-scrollbar { display: none; }
         
@@ -32,78 +32,100 @@
             width: 100vw; 
             scroll-snap-align: start; 
             position: relative; 
-            /* 3D aylanish markazi */
             transform-style: preserve-3d;
         }
 
-        /* 2. To'liq Ekranli Video Bloki */
+        /* 2. 3D Zanjir (Cube) Kartochkasi */
         .video-card {
             width: 100%;
             height: 100%;
             position: absolute;
             top: 0; left: 0;
             background: #000;
-            /* O'girilish nuqtasi - o'rtadan */
+            /* O'girilish markazi orqa tarafda (Zanjir effekti) */
             transform-origin: center center -50vh; 
-            transition: transform 0.5s ease-out;
+            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
             backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         video { 
             width: 100%; 
             height: 100%; 
-            object-fit: cover; /* To'liq fonni qoplaydi */
+            object-fit: cover; 
+            opacity: 0; /* Yuklanishdan oldin yashirin */
+            transition: opacity 0.8s ease; /* Silliq paydo bo'lish */
         }
 
-        /* 3. Premium Ma'lumotlar (Video ustida) */
+        /* 3. Yuklanish Hiylasi (Spinner) */
+        .loader-spinner {
+            position: absolute;
+            font-size: 40px;
+            z-index: 1;
+            animation: spin 1s linear infinite;
+            filter: drop-shadow(0 0 10px #0088cc);
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* 4. Premium Ma'lumotlar */
         .overlay-info {
             position: absolute;
-            bottom: 50px;
+            bottom: 60px;
             left: 20px;
-            right: 70px;
+            right: 80px;
             z-index: 10;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
             padding: 20px;
-            border-radius: 0 0 20px 20px;
             color: white;
+            pointer-events: none;
         }
 
-        .overlay-info h3 { margin: 0; font-size: 22px; color: #4facfe; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .overlay-info h3 { 
+            margin: 0; 
+            font-size: 22px; 
+            color: #4facfe; 
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            pointer-events: auto;
+        }
+        
         .overlay-info p { margin: 8px 0 0; font-size: 15px; opacity: 0.9; }
 
-        /* Yon tarafdagi Premium Tugmalar */
+        /* 5. Yon Tugmalar */
         .side-actions {
             position: absolute;
             right: 15px;
-            bottom: 100px;
+            bottom: 120px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 25px;
             z-index: 20;
         }
 
         .action-btn {
-            width: 50px; height: 50px;
-            background: rgba(255,255,255,0.2);
+            width: 55px; height: 55px;
+            background: rgba(255,255,255,0.15);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.3);
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 24px; color: #fff;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            font-size: 26px; color: #fff;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            transition: 0.2s;
         }
+        .action-btn:active { transform: scale(0.9); }
 
-        /* 4. Telegram Premium yaltirash effekti (Overlay) */
+        /* Premium Yaltirash */
         .premium-shimmer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
-            background-size: 200% 200%;
+            background-size: 250% 250%;
             pointer-events: none;
-            animation: shimmerMove 6s infinite;
+            animation: shimmerMove 5s infinite linear;
             z-index: 5;
         }
-
         @keyframes shimmerMove {
             0% { background-position: -200% -200%; }
             100% { background-position: 200% 200%; }
@@ -117,10 +139,12 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        // Firebase Sozlamalari
         const firebaseConfig = { databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // Ma'lumotlarni olish
         db.ref('videos').on('value', snap => {
             const data = snap.val() || {};
             let videos = Object.entries(data).map(([id, item]) => ({ id, ...item })).reverse();
@@ -136,6 +160,7 @@
                 
                 div.innerHTML = `
                     <div class="video-card" ondblclick="handleDoubleTap(this)">
+                        <div class="loader-spinner">🌀</div>
                         <div class="premium-shimmer"></div>
                         <video id="vid-${item.id}" loop playsinline muted preload="none" data-src="${item.file_url}"></video>
                         <div class="overlay-info">
@@ -144,7 +169,7 @@
                         </div>
                         <div class="side-actions">
                             <div class="action-btn" onclick="shareVideo('${item.id}', '${item.caption}')">✈️</div>
-                            <div class="action-btn">💙</div>
+                            <div class="action-btn" onclick="handleDoubleTap(this.parentElement.parentElement)">💙</div>
                         </div>
                     </div>
                 `;
@@ -153,44 +178,51 @@
             initLazyLoad();
         }
 
-        // 3D KUB/ZANJIR AYLANISHI (Scroll event)
+        // 3D Harakat nazorati
         document.getElementById('reels').addEventListener('scroll', function() {
             const reels = document.querySelectorAll('.reel');
-            const scrollPos = this.scrollTop;
             const height = window.innerHeight;
 
-            reels.forEach((reel, index) => {
+            reels.forEach(reel => {
                 const card = reel.querySelector('.video-card');
                 const rect = reel.getBoundingClientRect();
+                const offset = rect.top / height; // -1 dan 1 gacha qiymat
                 
-                // Markazdan qanchalik uzoqligini aniqlaymiz (-1 dan 1 gacha)
-                const offset = rect.top / height;
-                
-                // Kub aylanma effekti: 90 daraja o'girilish
+                // Zanjirdek o'girilish (90 daraja)
                 const rotateX = offset * 90; 
-                // Zanjir kabi bir-biriga bog'liq harakat
-                const translateZ = Math.abs(offset) * -100; 
+                const translateZ = Math.abs(offset) * -150; 
 
                 if (card) {
                     card.style.transform = `rotateX(${rotateX}deg) translateZ(${translateZ}px)`;
-                    card.style.opacity = 1 - Math.abs(offset) * 0.5;
+                    card.style.opacity = 1 - Math.abs(offset) * 0.4;
                 }
             });
         });
 
+        // Hiylakor Yuklash Tizimi
         function initLazyLoad() {
             const observer = new IntersectionObserver(entries => {
                 entries.forEach(entry => {
                     const video = entry.target.querySelector('video');
+                    const spinner = entry.target.querySelector('.loader-spinner');
+                    
                     if (entry.isIntersecting) {
-                        if (!video.src) {
-                            video.src = video.getAttribute('data-src');
-                            video.load();
-                        }
-                        video.play();
-                        video.muted = false;
+                        // 600ms kutib keyin yuklash (o'tkazish paytida internetni tejaydi)
+                        setTimeout(() => {
+                            if (!video.src) {
+                                video.src = video.getAttribute('data-src');
+                                video.load();
+                            }
+                            video.play().then(() => {
+                                video.muted = false;
+                                video.style.opacity = "1";
+                                if(spinner) spinner.style.display = "none";
+                            }).catch(() => {});
+                        }, 600);
                     } else {
                         video.pause();
+                        video.style.opacity = "0";
+                        if(spinner) spinner.style.display = "block";
                     }
                 });
             }, { threshold: 0.5 });
@@ -204,7 +236,7 @@
 
         function handleDoubleTap(element) {
             const heart = document.createElement('div');
-            heart.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px;z-index:30;color:#fff;opacity:0;transition:0.4s;pointer-events:none;text-shadow:0 0 30px #4facfe;';
+            heart.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px;z-index:30;color:#fff;opacity:0;transition:0.4s;pointer-events:none;text-shadow:0 0 30px #0088cc;';
             heart.innerHTML = '💙';
             element.appendChild(heart);
             setTimeout(() => { heart.style.opacity='1'; heart.style.transform='translate(-50%,-50%) scale(1.4)'; }, 20);
