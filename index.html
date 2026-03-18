@@ -63,7 +63,7 @@
             renderVideos(allVideos);
         });
 
-        function renderVideos(videos) {
+                function renderVideos(videos) {
             const container = document.getElementById('reels');
             container.innerHTML = '';
             videos.forEach(item => {
@@ -71,7 +71,15 @@
                 div.className = 'reel';
                 div.innerHTML = `
                     <div class="loader" id="loader-${item.id}"></div>
-                    <video id="vid-${item.id}" loop playsinline muted preload="none" src="${item.file_url}" onplaying="document.getElementById('loader-${item.id}').style.display='none'"></video>
+                    <video id="vid-${item.id}" 
+                           loop 
+                           playsinline 
+                           muted 
+                           preload="metadata" 
+                           poster="${item.file_url}#t=0.1" 
+                           src="${item.file_url}" 
+                           onplaying="document.getElementById('loader-${item.id}').style.display='none'">
+                    </video>
                     <div class="side-bar">
                         <button class="side-icon" onclick="this.innerHTML = this.innerHTML === '🤍' ? '❤️' : '🤍'">🤍</button>
                         <button class="side-icon" onclick="shareVideo('${item.id}', '${item.caption}')">✈️</button>
@@ -85,6 +93,7 @@
             });
             initLazyLoad();
         }
+
 
         function initLazyLoad() {
             const observer = new IntersectionObserver(entries => {
