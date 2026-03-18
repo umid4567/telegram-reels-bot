@@ -3,97 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels Pro</title>
+    <title>TgRound Reels</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; }
-        #category-bar { position: absolute; top: 10px; left: 0; width: 100%; z-index: 100; display: flex; overflow-x: auto; padding: 10px; gap: 10px; scrollbar-width: none; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
-        .cat-btn { background: rgba(255, 255, 255, 0.2); border: none; color: #fff; padding: 7px 16px; border-radius: 20px; white-space: nowrap; font-size: 14px; transition: 0.3s; }
-        .cat-btn.active { background: #fff; color: #000; font-weight: bold; }
-        #reels { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
+        body { 
+            margin: 0; 
+            background: #aad1e6 url('https://www.transparenttextures.com/patterns/absurdidad.png'); /* Tg chat foni */
+            color: #000; 
+            font-family: -apple-system, sans-serif; 
+            overflow: hidden; 
+        }
+        
+        #reels { 
+            height: 100vh; 
+            overflow-y: scroll; 
+            scroll-snap-type: y mandatory; 
+            scrollbar-width: none; 
+        }
         #reels::-webkit-scrollbar { display: none; }
-        .reel { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; display: flex; align-items: center; justify-content: center; background: #000; }
-        video { width: 100%; height: 100%; object-fit: cover; background: #000; }
-        .side-bar { position: absolute; right: 12px; bottom: 100px; z-index: 20; display: flex; flex-direction: column; gap: 20px; align-items: center; }
-        .side-icon { background: none; border: none; color: #fff; font-size: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); cursor: pointer; }
-        .info { position: absolute; bottom: 30px; left: 15px; right: 70px; z-index: 20; pointer-events: none; }
-        .info h3 { margin: 0; font-size: 16px; pointer-events: auto; display: inline-block; background: rgba(0,0,0,0.5); padding: 5px 12px; border-radius: 10px; color: #3498db; }
-        .info p { margin: 10px 0; font-size: 14px; text-shadow: 1px 1px 3px #000; }
-        .loader { position: absolute; width: 45px; height: 45px; border: 4px solid #222; border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .reel { 
+            height: 100vh; 
+            width: 100vw; 
+            scroll-snap-align: start; 
+            position: relative; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+        }
+        
+        /* Dumaloq video oynasi */
+        .video-wrapper {
+            position: relative;
+            width: 80vw; /* Ekranning 80% kengligida */
+            height: 80vw;
+            max-width: 350px;
+            max-height: 350px;
+            border-radius: 50%; /* DUMALOQ */
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 5px solid #fff;
+            background: #000;
+            z-index: 10;
+        }
+        
+        video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+        }
+        
+        /* Oynadan tashqaridagi ma'lumotlar (Tg pufakchasi uslubida) */
+        .info-bubble {
+            background: #fff;
+            border-radius: 15px;
+            padding: 10px 15px;
+            width: 85%;
+            max-width: 400px;
+            margin-top: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 10;
+        }
+        .info-bubble h3 { margin: 0; font-size: 16px; color: #2481cc; cursor: pointer; }
+        .info-bubble p { margin: 5px 0 0; font-size: 14px; color: #333; }
+        
+        /* Yon paneldagi tugmalar (Tg pufakchalari uslubida) */
+        .side-actions {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+        }
+        .action-btn {
+            background: rgba(255,255,255,0.8);
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Smayllar animatsiyasi */
+        .emoji-fly {
+            position: absolute;
+            font-size: 35px;
+            opacity: 0;
+            z-index: 5;
+            pointer-events: none;
+            animation: flyAround 3s ease-in-out infinite;
+        }
+
+        @keyframes flyAround {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            50% { transform: translate(var(--tw-x), var(--tw-y)) rotate(var(--tw-r)); opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translate(var(--tw-x-end), var(--tw-y-end)) rotate(calc(var(--tw-r) * 2)); opacity: 0; }
+        }
     </style>
 </head>
 <body>
-    <div id="category-bar">
-        <button class="cat-btn active" onclick="filterCat('Hammasi', this)">Hammasi</button>
-        <button class="cat-btn" onclick="filterCat('Yangiliklar', this)">Yangiliklar</button>
-        <button class="cat-btn" onclick="filterCat('Yumor', this)">Yumor</button>
-        <button class="cat-btn" onclick="filterCat('Talim', this)">Ta'lim</button>
-        <button class="cat-btn" onclick="filterCat('Texno', this)">Texno</button>
-    </div>
     <div id="reels"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        // Firebase-ni o'zingizniki bilan almashtiring
         const firebaseConfig = { databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let allVideos = [];
-        const botUsername = "Vireels_bot"; // Username-ni bu yerda o'zgartiring
+        const botUsername = "Vireels_bot"; // Bot username-ni yozing
+
+        const funEmojis = ['😂', '😍', '🎉', '🔥', '👍', '🙈', '⚡️', '🌟'];
 
         db.ref('videos').on('value', snap => {
             const data = snap.val() || {};
             let videos = Object.entries(data).map(([id, item]) => ({ id, ...item }));
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            const startId = urlParams.get('start');
-
-            if (startId) {
-                const shared = videos.find(v => v.id === startId);
-                if (shared) videos = [shared, ...videos.filter(v => v.id !== startId)];
-            } else {
-                videos.reverse();
-            }
+            videos.reverse(); // Yangilarini birinchi ko'rsatish
             allVideos = videos;
             renderVideos(allVideos);
         });
 
-                function renderVideos(videos) {
+        function renderVideos(videos) {
             const container = document.getElementById('reels');
             container.innerHTML = '';
             videos.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'reel';
+                
+                // Smayllarni yaratish
+                let emojisHtml = '';
+                for (let i = 0; i < 6; i++) {
+                    const emoji = funEmojis[Math.floor(Math.random() * funEmojis.length)];
+                    // Tasodifiy harakatlanish yo'nalishlari
+                    const tx = (Math.random() - 0.5) * 300; // -150px dan 150px gacha
+                    const ty = (Math.random() - 0.5) * 300;
+                    const tr = (Math.random() - 0.5) * 90; // -45deg dan 45deg gacha
+                    const duration = 3 + Math.random() * 2; // 3-5 soniya
+
+                    emojisHtml += `<div class="emoji-fly" style="
+                        --tw-x: ${tx}px; --tw-y: ${ty}px; --tw-r: ${tr}deg;
+                        --tw-x-end: ${tx * 1.2}px; --tw-y-end: ${ty * 1.2}px;
+                        animation-duration: ${duration}s;
+                        animation-delay: ${Math.random() * 2}s;
+                    ">${emoji}</div>`;
+                }
+
                 div.innerHTML = `
-                    <div class="loader" id="loader-${item.id}"></div>
-                    <video id="vid-${item.id}" 
-                           loop 
-                           playsinline 
-                           muted 
-                           preload="metadata" 
-                           poster="${item.file_url}#t=0.1" 
-                           src="${item.file_url}" 
-                           onplaying="document.getElementById('loader-${item.id}').style.display='none'">
-                    </video>
-                    <div class="side-bar">
-                        <button class="side-icon" onclick="this.innerHTML = this.innerHTML === '🤍' ? '❤️' : '🤍'">🤍</button>
-                        <button class="side-icon" onclick="shareVideo('${item.id}', '${item.caption}')">✈️</button>
+                    <div class="video-wrapper" ondblclick="handleDoubleTap(this)">
+                        <video id="vid-${item.id}" loop playsinline muted preload="metadata" src="${item.file_url}"></video>
+                        ${emojisHtml}
                     </div>
-                    <div class="info">
+                    
+                    <div class="info-bubble">
                         <h3 onclick="tg.openTelegramLink('${item.channel_link}')">@${item.user}</h3>
                         <p>${item.caption || ''}</p>
+                    </div>
+
+                    <div class="side-actions">
+                        <button class="action-btn" onclick="shareVideo('${item.id}', '${item.caption}')">✈️</button>
                     </div>
                 `;
                 container.appendChild(div);
             });
             initLazyLoad();
         }
-
 
         function initLazyLoad() {
             const observer = new IntersectionObserver(entries => {
@@ -102,12 +190,13 @@
                     if (entry.isIntersecting) {
                         video.play();
                         video.muted = false;
+                        // Video o'ynaganda smayllarni faollashtirish (ixtiyoriy)
                     } else {
                         video.pause();
-                        video.currentTime = 0; // Resursni tejash uchun
+                        video.currentTime = 0;
                     }
                 });
-            }, { threshold: 0.6 });
+            }, { threshold: 0.7 });
             document.querySelectorAll('.reel').forEach(reel => observer.observe(reel));
         }
 
@@ -117,11 +206,17 @@
             tg.openTelegramLink(shareUrl);
         }
 
-        function filterCat(cat, btn) {
-            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderVideos(cat === 'Hammasi' ? allVideos : allVideos.filter(v => v.category === cat.toLowerCase()));
+        // Like animatsiyasi (ikki marta bossa markazda yurakcha chiqadi)
+        function handleDoubleTap(element) {
+            const heart = document.createElement('div');
+            heart.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:80px;color:#ff3040;z-index:20;opacity:0;transition:0.3s;pointer-events:none;';
+            heart.innerHTML = '❤️';
+            element.appendChild(heart);
+            setTimeout(() => { heart.style.opacity = '1'; heart.style.transform = 'translate(-50%,-50%) scale(1.2)'; }, 10);
+            setTimeout(() => { heart.style.opacity = '0'; heart.style.transform = 'translate(-50%,-50%) scale(1)'; }, 800);
+            setTimeout(() => heart.remove(), 1100);
         }
     </script>
 </body>
 </html>
+
