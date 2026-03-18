@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels: Yer Tizimi Ultra</title>
+    <title>UzReels: Galaxy Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
     <style>
-        /* 1. Chuqur kosmos foni */
         body { 
             margin: 0; 
             height: 100vh;
-            background: #000 url('https://www.transparenttextures.com/patterns/stardust.png'); /* Yulduzli chang */
+            background: #000;
             color: #fff; 
             font-family: -apple-system, sans-serif; 
             overflow: hidden; 
@@ -23,8 +22,6 @@
             overflow-y: scroll; 
             scroll-snap-type: y mandatory; 
             scrollbar-width: none; 
-            position: relative;
-            z-index: 10;
         }
         #reels::-webkit-scrollbar { display: none; }
         
@@ -34,147 +31,95 @@
             scroll-snap-align: start; 
             position: relative; 
             display: flex; 
-            flex-direction: column;
-            align-items: center; 
-            justify-content: center; 
-            overflow: hidden; /* Sayyoralar chetga chiqmasligi uchun */
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
         }
 
-        /* 2. Markaziy Tizim Konteyneri */
+        /* Tizim konteyneri markazda turishi uchun */
         .system-container {
             position: relative;
-            width: 100%;
-            height: 100%;
+            width: 320px;
+            height: 450px;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 20;
         }
         
-        /* 3. Markaziy Tizim: "YER" (Earth) va Video */
+        /* VIDEO: TIKKA TUHUM SHAKLI */
         .video-wrapper {
             position: relative;
-            width: 75vw; /* Ekranning 75% kengligida */
-            height: 75vw;
-            max-width: 320px;
-            max-height: 320px;
-            border-radius: 50%;
-            overflow: hidden; /* Videoni dumaloq qilish */
-            /* "Quyosh" (markaz) nur sochishi */
-            box-shadow: 0 0 60px 20px rgba(255, 215, 0, 0.4); /* Oltin nur */
-            border: 6px solid #fff;
+            width: 240px; 
+            height: 320px; /* Balandroq qilib tuhum shakli berildi */
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; /* Tuxumsimon egrilik */
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+            border: 4px solid #fff;
             background: #000;
-            z-index: 30; /* Sayyoralardan baland */
-            
-            /* DUMALOQ SHAKLGA MOSLASHISH */
-            border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+            z-index: 100;
         }
         
         video { 
             width: 100%; 
             height: 100%; 
-            object-fit: cover; 
-            border-radius: 50%;
+            object-fit: cover;
         }
 
-        /* 4. Sayyoralar va Orbitaga oid Global CSS */
+        /* ORBITALAR */
         .orbit {
             position: absolute;
-            border: 1px solid rgba(255,255,255,0.1); /* Ingichka orbita chizig'i */
+            border: 1px solid rgba(255,255,255,0.15);
             border-radius: 50%;
-            pointer-events: none; /* Tegib ketmaslik uchun */
-            z-index: 10; /* Video orqasida */
+            pointer-events: none;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
         }
 
-        .planet-container {
+        /* SAYYORA KONTEYNERI (AYLANISH UCHUN) */
+        .planet-holder {
             position: absolute;
             top: 50%; left: 50%;
-            z-index: 25; /* Video orqasida, orbitadan ustida */
-            pointer-events: none;
-            /* Orbita bo'ylab aylanish animatsiyasi */
-            animation: revolvePlanet linear infinite;
-            
-            /* TUHUM SHAKLIDAY CHUZULISH EFFEKTI (Tepaga va pastga) */
-            animation: stretchPlanet 5s ease-in-out infinite alternate;
+            transform-origin: 0 0;
+            animation: rotateOrbit linear infinite;
+        }
+
+        @keyframes rotateOrbit {
+            from { transform: rotate(0deg) translate(-50%, -50%); }
+            to { transform: rotate(360deg) translate(-50%, -50%); }
         }
 
         .planet {
             position: absolute;
             border-radius: 50%;
             background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            /* Nur sochishi */
-            box-shadow: 0 0 10px rgba(255,255,255,0.2);
-            /* O'z o'qi atrofida aylanish (ixtiyoriy, sekinroq) */
-            animation: selfRotatePlanet 10s linear infinite;
+            box-shadow: 0 0 10px rgba(255,255,255,0.3);
         }
 
-        /* Saturnning halqasi */
-        .planet.saturn::after {
-            content: '';
+        /* MA'LUMOTLAR */
+        .info-panel {
             position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%) rotateX(75deg);
-            width: 200%; height: 200%;
-            border-radius: 50%;
-            border: 3px solid rgba(210, 180, 140, 0.6);
-            box-shadow: 0 0 5px rgba(210, 180, 140, 0.4);
-        }
-
-        /* 5. Orbita bo'ylab aylanish (Global Animatsiya) */
-        @keyframes revolvePlanet {
-            from { transform: translate(-50%, -50%) rotate(0deg); }
-            to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-
-        /* O'z o'qi atrofida aylanish */
-        @keyframes selfRotatePlanet {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Tuhum shakliday chuzulish animatsiyasi */
-        @keyframes stretchPlanet {
-            from { transform: scale(1); }
-            to { transform: scale(1.1, 1); } /* Tepaga va pastga chuzulish */
-        }
-
-        /* 6. Kosmik uslubdagi ma'lumotlar */
-        .info-bubble {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
+            bottom: 30px;
+            width: 85%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
             border-radius: 20px;
-            padding: 12px 20px;
-            width: 80%;
-            max-width: 380px;
-            margin-top: 35px;
+            padding: 15px;
             text-align: center;
-            z-index: 40; /* Eng ustida */
+            z-index: 200;
+            border: 1px solid rgba(255,255,255,0.1);
         }
-        .info-bubble h3 { margin: 0; font-size: 18px; color: #ffca28; cursor: pointer; text-shadow: 0 0 10px rgba(255,202,40,0.5); }
-        .info-bubble p { margin: 8px 0 0; font-size: 15px; color: #fff; font-weight: 500; }
-        
-        /* Ulashish tugmasi */
-        .side-actions {
+        .info-panel h3 { margin: 0; color: #ffca28; font-size: 18px; }
+        .info-panel p { margin: 5px 0 0; font-size: 14px; opacity: 0.8; }
+
+        .btn-share {
             position: absolute;
             right: 20px;
-            bottom: 40px;
-            z-index: 50;
-        }
-        .action-btn {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.3);
-            width: 55px;
-            height: 55px;
+            bottom: 120px;
+            width: 50px; height: 50px;
+            background: rgba(255,255,255,0.2);
             border-radius: 50%;
-            font-size: 26px;
-            color: #fff;
-            cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            text-shadow: 0 0 10px #fff;
+            font-size: 24px; border: none; color: #fff; z-index: 200;
         }
     </style>
 </head>
@@ -185,120 +130,81 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // FIREBASE SOZLAMALARI
         const firebaseConfig = { databaseURL: "https://uzreels-bot-default-rtdb.europe-west1.firebasedatabase.app/" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let allVideos = [];
-        const botUsername = "Vireels_bot"; 
-        
-        // Sayyoralar Ma'lumotlar Bazasi (PNG, shaffof fonli)
-        const planetsData = [
-            { name: 'moon', size: 15, orbit: 190, speed: 20, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Full_Moon_Luc Viatour.jpg/120px-Full_Moon_Luc Viatour.jpg', shadow: 'rgba(200,200,200,0.3)' }, // Oy
-            { name: 'mercury', size: 18, orbit: 230, speed: 30, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Mercury_in_true_color.jpg/120px-Mercury_in_true_color.jpg', shadow: 'rgba(169,169,169,0.3)' },
-            { name: 'venus', size: 24, orbit: 270, speed: 40, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Venus_from_Mariner_10.jpg/120px-Venus_from_Mariner_10.jpg', shadow: 'rgba(255,223,196,0.3)' },
-            { name: 'mars', size: 22, orbit: 310, speed: 50, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Mars_Valles_Marineris.jpeg/120px-Mars_Valles_Marineris.jpeg', shadow: 'rgba(255,100,100,0.3)' },
-            { name: 'jupiter', size: 50, orbit: 380, speed: 70, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Jupiter_and_its_shrunken_Great_Red_Spot.jpg/120px-Jupiter_and_its_shrunken_Great_Red_Spot.jpg', shadow: 'rgba(210,180,140,0.3)' },
-            { name: 'saturn', size: 45, orbit: 460, speed: 90, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Saturn_during_Equinox.jpg/120px-Saturn_during_Equinox.jpg', shadow: 'rgba(238,232,170,0.3)' }, // Halqali
-            { name: 'uranus', size: 35, orbit: 530, speed: 120, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Uranus2.jpg/120px-Uranus2.jpg', shadow: 'rgba(173,216,230,0.3)' },
-            { name: 'neptune', size: 34, orbit: 590, speed: 160, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Neptune_Full.jpg/120px-Neptune_Full.jpg', shadow: 'rgba(72,61,139,0.3)' }
+        // Sayyoralar (Tezliklar sekinlashtirildi: 20s - 100s)
+        const planets = [
+            { name: 'moon', size: 12, dist: 150, speed: '20s', img: 'https://cdn-icons-png.flaticon.com/512/115/115867.png' },
+            { name: 'mars', size: 20, dist: 190, speed: '35s', img: 'https://cdn-icons-png.flaticon.com/512/3590/3590302.png' },
+            { name: 'jupiter', size: 35, dist: 240, speed: '50s', img: 'https://cdn-icons-png.flaticon.com/512/3590/3590450.png' },
+            { name: 'saturn', size: 30, dist: 300, speed: '75s', img: 'https://cdn-icons-png.flaticon.com/512/3590/3590469.png' },
+            { name: 'neptune', size: 25, dist: 360, speed: '100s', img: 'https://cdn-icons-png.flaticon.com/512/3590/3590429.png' }
         ];
 
         db.ref('videos').on('value', snap => {
             const data = snap.val() || {};
-            let videos = Object.entries(data).map(([id, item]) => ({ id, ...item }));
-            videos.reverse(); 
-            allVideos = videos;
-            renderVideos(allVideos);
+            const videoList = Object.entries(data).map(([id, item]) => ({ id, ...item })).reverse();
+            render(videoList);
         });
 
-        function renderVideos(videos) {
+        function render(videos) {
             const container = document.getElementById('reels');
             container.innerHTML = '';
             videos.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'reel';
+                const reel = document.createElement('div');
+                reel.className = 'reel';
                 
-                // Sayyoralar va Orbitalarni yaratish
-                let planetsHtml = '';
-
-                planetsData.forEach(planet => {
+                let spaceStuff = '';
+                planets.forEach(p => {
                     // Orbita chizig'i
-                    planetsHtml += `<div class="orbit" style="
-                        width: ${planet.orbit}px; height: ${planet.orbit}px;
-                        top: calc(50% - ${planet.orbit/2}px); left: calc(50% - ${planet.orbit/2}px);
-                    "></div>`;
-                    
-                    // Sayyora va uning aylanishi
-                    planetsHtml += `<div class="planet-container" style="
-                        width: ${planet.orbit}px; height: ${planet.orbit}px;
-                        animation-duration: ${planet.speed}s; /* Har xil sekinroq tezlik */
-                        animation-delay: -${Math.random()*planet.speed}s; /* Har xil boshlanish nuqtasi */
-                    ">
-                        <div class="planet ${planet.name}" style="
-                            width: ${planet.size}px; height: ${planet.size}px;
-                            background-image: url('${planet.img}');
-                            top: calc(50% - ${planet.size/2}px);
-                            left: calc(100% - ${planet.size/2}px); /* Orbitaning o'ng chetida */
-                            box-shadow: 0 0 15px 3px ${planet.shadow};
+                    spaceStuff += `<div class="orbit" style="width:${p.dist*2}px; height:${p.dist*2}px;"></div>`;
+                    // Sayyora
+                    spaceStuff += `
+                    <div class="planet-holder" style="animation-duration: ${p.speed}; width:${p.dist*2}px; height:${p.dist*2}px;">
+                        <div class="planet" style="
+                            width:${p.size}px; height:${p.size}px; 
+                            left: 100%; top: 50%; transform: translate(-50%, -50%);
+                            background-image: url('${p.img}');
                         "></div>
                     </div>`;
                 });
 
-                div.innerHTML = `
+                reel.innerHTML = `
                     <div class="system-container">
-                        <div class="video-wrapper" ondblclick="handleDoubleTap(this)">
-                            <video id="vid-${item.id}" loop playsinline muted preload="metadata" src="${item.file_url}"></video>
+                        <div class="video-wrapper">
+                            <video id="vid-${item.id}" loop playsinline muted src="${item.file_url}"></video>
                         </div>
-                        ${planetsHtml} /* Sayyoralar video atrofida aylanadi */
+                        ${spaceStuff}
                     </div>
-                    
-                    <div class="info-bubble">
+                    <div class="info-panel">
                         <h3 onclick="tg.openTelegramLink('${item.channel_link}')">@${item.user}</h3>
                         <p>${item.caption || ''}</p>
                     </div>
-
-                    <div class="side-actions">
-                        <button class="action-btn" onclick="shareVideo('${item.id}', '${item.caption}')">✈️</button>
-                    </div>
+                    <button class="btn-share" onclick="share('${item.id}', '${item.caption}')">✈️</button>
                 `;
-                container.appendChild(div);
+                container.appendChild(reel);
             });
-            initLazyLoad();
+            startObserver();
         }
 
-        function initLazyLoad() {
+        function startObserver() {
             const observer = new IntersectionObserver(entries => {
                 entries.forEach(entry => {
-                    const video = entry.target.querySelector('video');
-                    if (entry.isIntersecting) {
-                        video.play();
-                        video.muted = false;
-                    } else {
-                        video.pause();
-                        video.currentTime = 0;
-                    }
+                    const v = entry.target.querySelector('video');
+                    if (entry.isIntersecting) { v.play(); v.muted = false; }
+                    else { v.pause(); v.currentTime = 0; }
                 });
-            }, { threshold: 0.6 });
-            document.querySelectorAll('.reel').forEach(reel => observer.observe(reel));
+            }, { threshold: 0.8 });
+            document.querySelectorAll('.reel').forEach(r => observer.observe(r));
         }
 
-        function shareVideo(id, text) {
-            const deepLink = `https://t.me/${botUsername}?start=${id}`;
-            const shareUrl = `https://t.me/share/url?url=${deepLink}&text=${encodeURIComponent('🎬 ' + text)}`;
-            tg.openTelegramLink(shareUrl);
-        }
-
-        function handleDoubleTap(element) {
-            const heart = document.createElement('div');
-            heart.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px;z-index:60;color:#ffca28;opacity:0;transition:0.4s;pointer-events:none;text-shadow:0 0 20px #ffca28;';
-            heart.innerHTML = '💙'; // Kosmik moviy yurakcha
-            element.appendChild(heart);
-            setTimeout(() => { heart.style.opacity='1'; heart.style.transform='translate(-50%,-50%) scale(1.3)'; }, 20);
-            setTimeout(() => { heart.style.opacity='0'; heart.style.transform='translate(-50%,-50%) scale(1)'; }, 700);
-            setTimeout(() => heart.remove(), 1200);
+        function share(id, text) {
+            const url = `https://t.me/Vireels_bot?start=${id}`;
+            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${encodeURIComponent(text)}`);
         }
     </script>
 </body>
 </html>
+
