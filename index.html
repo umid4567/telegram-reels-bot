@@ -179,61 +179,68 @@
         ];
 
         db.ref('videos').on('value', snap => {
-            const data = snap.val() || {};
-            let videos = Object.entries(data).map(([id, item]) => ({ id, ...item })).reverse();
-            renderVideos(videos);
+    const data = snap.val() || {};
+    // Videolarni massivga olamiz va teskari tartibda taxlaymiz
+    let videos = Object.entries(data).map(([id, item]) => ({ id, ...item })).reverse();
+    renderVideos(videos);
+});
+
+function renderVideos(videos) {
+    const container = document.getElementById('reels');
+    container.innerHTML = '';
+    videos.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'reel';
+        
+        // Sayyoralar kodi o'z joyida qoladi... (planetsHtml)
+        let planetsHtml = ''; 
+        planetsData.forEach(planet => {
+            planetsHtml += `<div class="orbit" style="width: ${planet.orbit}px; height: ${planet.orbit}px; top: calc(50% - ${planet.orbit/2}px); left: calc(50% - ${planet.orbit/2}px);"></div>`;
+            planetsHtml += `<div class="planet-container" style="width: ${planet.orbit}px; height: ${planet.orbit}px; animation-duration: ${planet.speed}s;">
+                <div class="planet" style="width: ${planet.size}px; height: ${planet.size}px; background-image: url('${planet.img}'); top: calc(50% - ${planet.size/2}px); left: calc(100% - ${planet.size/2}px);"></div>
+            </div>`;
         });
 
-        function renderVideos(videos) {
-            const container = document.getElementById('reels');
-            container.innerHTML = '';
-            videos.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'reel';
-                
-                let planetsHtml = '';
-                planetsData.forEach(planet => {
-                    planetsHtml += `<div class="orbit" style="width: ${planet.orbit}px; height: ${planet.orbit}px; top: calc(50% - ${planet.orbit/2}px); left: calc(50% - ${planet.orbit/2}px);"></div>`;
-                    planetsHtml += `<div class="planet-container" style="width: ${planet.orbit}px; height: ${planet.orbit}px; animation-duration: ${planet.speed}s; animation-delay: -${Math.random()*planet.speed}s;">
-                        <div class="planet ${planet.name}" style="width: ${planet.size}px; height: ${planet.size}px; background-image: url('${planet.img}'); top: calc(50% - ${planet.size/2}px); left: calc(100% - ${planet.size/2}px); box-shadow: 0 0 15px 3px ${planet.shadow};"></div>
-                    </div>`;
-                });
+        div.innerHTML = `
+            <div class="system-container">
+                <div class="video-wrapper">
+                    <video id="vid-${item.id}" loop playsinline muted preload="none" data-src="${item.file_url}"></video>
+                </div>
+                ${planetsHtml}
+            </div>
+            <div class="info-bubble">
+                <h3>@${item.user}</h3>
+                <p>${item.caption || ''}</p>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+    // Videolarni aqlli yuklashni ishga tushiramiz
+    initLazyLoad();
+}
 
-                div.innerHTML = `
-                    <div class="system-container">
-                        <div class="video-wrapper" ondblclick="handleDoubleTap(this)">
-                            <video id="vid-${item.id}" loop playsinline muted src="${item.file_url}"></video>
-                        </div>
-                        ${planetsHtml}
-                    </div>
-                    <div class="info-bubble">
-                        <h3 onclick="tg.openTelegramLink('${item.channel_link}')">@${item.user}</h3>
-                        <p>${item.caption || ''}</p>
-                    </div>
-                    <div class="side-actions">
-                        <button class="action-btn" onclick="shareVideo('${item.id}', '${item.caption}')">✈️</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-            initLazyLoad();
-        }
 
         function initLazyLoad() {
-            const observer = new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    const video = entry.target.querySelector('video');
-                    if (entry.isIntersecting) { video.play(); video.muted = false; }
-                    else { video.pause(); video.currentTime = 0; }
-                });
-            }, { threshold: 0.8 });
-            document.querySelectorAll('.reel').forEach(reel => observer.observe(reel));
-        }
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            const video = entry.target.querySelector('video');
+            if (entry.isIntersecting) {
+                // Video ekranga kelganda manbani yuklaymiz
+                if (!video.src) {
+                    video.src = video.getAttribute('data-src');
+                    video.load();
+                }
+                video.play();
+                video.muted = false;
+            } else {
+                video.pause();
+            }
+        });
+    }, { threshold: 0.5 }); // Video yarmi ko'ringanda darrov ishlaydi
 
-        function shareVideo(id, text) {
-            const url = `https://t.me/Vireels_bot?start=${id}`;
-            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${encodeURIComponent(text)}`);
-        }
+    document.querySelectorAll('.reel').forEach(reel => observer.observe(reel));
+}
+
 
         function handleDoubleTap(element) {
             const heart = document.createElement('div');
