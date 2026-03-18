@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UzReels: Galaxy</title>
+    <title>UzReels: In Flight</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
     <style>
+        /* 1. Samolyot saloni foni (Och kulrang/oqish plastik) */
         body { 
             margin: 0; 
             height: 100vh;
-            background: #000 url('https://www.transparenttextures.com/patterns/stardust.png'); 
-            color: #fff; 
+            background: #e5e7eb; /* Samolyot ichki devori rangi */
+            color: #1f2937; 
             font-family: -apple-system, sans-serif; 
             overflow: hidden; 
         }
@@ -36,122 +37,95 @@
             flex-direction: column;
             align-items: center; 
             justify-content: center; 
-            overflow: hidden; 
+            /* Devor teksturasi uchun yengil soya */
+            background: radial-gradient(circle at center, #ffffff 0%, #d1d5db 100%);
         }
 
         .system-container {
             position: relative;
             width: 100%;
-            height: 100%;
+            height: 60%;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 20;
         }
         
-                /* 3. Markaziy "Tuxumsimon" Video */
-        .video-wrapper {
+        /* 2. Samolyot oynasi ramkasi (Porthole Frame) */
+        .window-frame {
             position: relative;
-            width: 260px; /* Eni biroz qisqardi */
-            height: 360px; /* Bo'yi baland bo'ldi (tepaga-pastga cho'zildi) */
-            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; /* Haqiqiy tuxum shakli */
-            overflow: hidden; 
-            box-shadow: 0 0 60px 20px rgba(255, 215, 0, 0.4); 
-            border: 6px solid #fff;
-            background: #000;
-            z-index: 30; 
-        }
-        
-        video { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; /* Video cho'zilib ketmaydi, tuxum ichini chiroyli to'ldiradi */
-            /* border-radius: 50%; <-- BU QATORNI O'CHIRIB TASHLANG (agar bo'lsa) */
+            width: 280px;
+            height: 400px;
+            background: #f3f4f6;
+            border-radius: 140px; /* Oval shakli */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Oyna ramkasining qalinligi va soyasi */
+            box-shadow: 
+                10px 10px 30px rgba(0,0,0,0.1), 
+                -5px -5px 15px rgba(255,255,255,0.8),
+                inset 0 0 20px rgba(0,0,0,0.2);
+            border: 15px solid #d1d5db;
         }
 
+        /* 3. Ichki video qismi */
+        .video-wrapper {
+            position: relative;
+            width: 250px;
+            height: 370px;
+            border-radius: 125px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: inset 0 0 50px rgba(0,0,0,1);
+        }
         
+        /* Oynadagi yaltirash (Reflection) */
+        .video-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 40%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
         video { 
             width: 100%; 
             height: 100%; 
             object-fit: cover; 
-            border-radius: 50%;
         }
 
-        .orbit {
-            position: absolute;
-            border: 1px solid rgba(255,255,255,0.1); 
-            border-radius: 50%;
-            pointer-events: none; 
-            z-index: 10; 
-        }
-
-        .planet-container {
-            position: absolute;
-            top: 50%; left: 50%;
-            z-index: 25; 
-            pointer-events: none;
-            animation: revolvePlanet linear infinite;
-        }
-
-        .planet {
-            position: absolute;
-            border-radius: 50%;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            box-shadow: 0 0 10px rgba(255,255,255,0.2);
-            animation: selfRotatePlanet 15s linear infinite;
-        }
-
-        .planet.saturn::after {
-            content: '';
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%) rotateX(75deg);
-            width: 200%; height: 200%;
-            border-radius: 50%;
-            border: 3px solid rgba(210, 180, 140, 0.6);
-        }
-
-        @keyframes revolvePlanet {
-            from { transform: translate(-50%, -50%) rotate(0deg); }
-            to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-
-        @keyframes selfRotatePlanet {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
+        /* Ma'lumotlar paneli */
         .info-bubble {
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 20px;
-            padding: 12px 20px;
+            border: 1px solid #d1d5db;
+            border-radius: 15px;
+            padding: 15px;
             width: 80%;
-            max-width: 380px;
-            margin-top: 35px;
+            max-width: 320px;
+            margin-top: 40px;
             text-align: center;
-            z-index: 40; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
-        .info-bubble h3 { margin: 0; font-size: 18px; color: #ffca28; cursor: pointer; }
-        .info-bubble p { margin: 8px 0 0; font-size: 15px; color: #fff; font-weight: 500; }
+        .info-bubble h3 { margin: 0; font-size: 18px; color: #2563eb; }
+        .info-bubble p { margin: 5px 0 0; font-size: 14px; color: #4b5563; }
         
         .side-actions {
             position: absolute;
             right: 20px;
             bottom: 40px;
-            z-index: 50;
         }
         .action-btn {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.3);
-            width: 55px; height: 55px;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            width: 50px; height: 50px;
             border-radius: 50%;
-            font-size: 26px; color: #fff;
-            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
     </style>
 </head>
@@ -166,90 +140,72 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Sayyoralar Ma'lumotlari - Tezliklar (speed) sekinlashtirildi
-        const planetsData = [
-            { name: 'moon', size: 15, orbit: 190, speed: 40, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Full_Moon_Luc Viatour.jpg/120px-Full_Moon_Luc Viatour.jpg', shadow: 'rgba(200,200,200,0.3)' },
-            { name: 'mercury', size: 18, orbit: 230, speed: 55, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Mercury_in_true_color.jpg/120px-Mercury_in_true_color.jpg', shadow: 'rgba(169,169,169,0.3)' },
-            { name: 'venus', size: 24, orbit: 275, speed: 70, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Venus_from_Mariner_10.jpg/120px-Venus_from_Mariner_10.jpg', shadow: 'rgba(255,223,196,0.3)' },
-            { name: 'mars', size: 22, orbit: 320, speed: 90, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Mars_Valles_Marineris.jpeg/120px-Mars_Valles_Marineris.jpeg', shadow: 'rgba(255,100,100,0.3)' },
-            { name: 'jupiter', size: 50, orbit: 400, speed: 130, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Jupiter_and_its_shrunken_Great_Red_Spot.jpg/120px-Jupiter_and_its_shrunken_Great_Red_Spot.jpg', shadow: 'rgba(210,180,140,0.3)' },
-            { name: 'saturn', size: 45, orbit: 480, speed: 160, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Saturn_during_Equinox.jpg/120px-Saturn_during_Equinox.jpg', shadow: 'rgba(238,232,170,0.3)' },
-            { name: 'uranus', size: 35, orbit: 560, speed: 200, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Uranus2.jpg/120px-Uranus2.jpg', shadow: 'rgba(173,216,230,0.3)' },
-            { name: 'neptune', size: 34, orbit: 630, speed: 250, img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Neptune_Full.jpg/120px-Neptune_Full.jpg', shadow: 'rgba(72,61,139,0.3)' }
-        ];
-
         db.ref('videos').on('value', snap => {
-    const data = snap.val() || {};
-    // Videolarni massivga olamiz va teskari tartibda taxlaymiz
-    let videos = Object.entries(data).map(([id, item]) => ({ id, ...item })).reverse();
-    renderVideos(videos);
-});
-
-function renderVideos(videos) {
-    const container = document.getElementById('reels');
-    container.innerHTML = '';
-    videos.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'reel';
-        
-        // Sayyoralar kodi o'z joyida qoladi... (planetsHtml)
-        let planetsHtml = ''; 
-        planetsData.forEach(planet => {
-            planetsHtml += `<div class="orbit" style="width: ${planet.orbit}px; height: ${planet.orbit}px; top: calc(50% - ${planet.orbit/2}px); left: calc(50% - ${planet.orbit/2}px);"></div>`;
-            planetsHtml += `<div class="planet-container" style="width: ${planet.orbit}px; height: ${planet.orbit}px; animation-duration: ${planet.speed}s;">
-                <div class="planet" style="width: ${planet.size}px; height: ${planet.size}px; background-image: url('${planet.img}'); top: calc(50% - ${planet.size/2}px); left: calc(100% - ${planet.size/2}px);"></div>
-            </div>`;
+            const data = snap.val() || {};
+            let videos = Object.entries(data).map(([id, item]) => ({ id, ...item })).reverse();
+            renderVideos(videos);
         });
 
-        div.innerHTML = `
-            <div class="system-container">
-                <div class="video-wrapper">
-                    <video id="vid-${item.id}" loop playsinline muted preload="none" data-src="${item.file_url}"></video>
-                </div>
-                ${planetsHtml}
-            </div>
-            <div class="info-bubble">
-                <h3>@${item.user}</h3>
-                <p>${item.caption || ''}</p>
-            </div>
-        `;
-        container.appendChild(div);
-    });
-    // Videolarni aqlli yuklashni ishga tushiramiz
-    initLazyLoad();
-}
-
+        function renderVideos(videos) {
+            const container = document.getElementById('reels');
+            container.innerHTML = '';
+            videos.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'reel';
+                
+                div.innerHTML = `
+                    <div class="system-container">
+                        <div class="window-frame">
+                            <div class="video-wrapper" ondblclick="handleDoubleTap(this)">
+                                <video id="vid-${item.id}" loop playsinline muted preload="none" data-src="${item.file_url}"></video>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-bubble">
+                        <h3 onclick="tg.openTelegramLink('${item.channel_link || '#'}')">@${item.user}</h3>
+                        <p>${item.caption || ''}</p>
+                    </div>
+                    <div class="side-actions">
+                        <button class="action-btn" onclick="shareVideo('${item.id}', '${item.caption}')">✈️</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            initLazyLoad();
+        }
 
         function initLazyLoad() {
-    const observer = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-            const video = entry.target.querySelector('video');
-            if (entry.isIntersecting) {
-                // Video ekranga kelganda manbani yuklaymiz
-                if (!video.src) {
-                    video.src = video.getAttribute('data-src');
-                    video.load();
-                }
-                video.play();
-                video.muted = false;
-            } else {
-                video.pause();
-            }
-        });
-    }, { threshold: 0.5 }); // Video yarmi ko'ringanda darrov ishlaydi
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    const video = entry.target.querySelector('video');
+                    if (entry.isIntersecting) {
+                        if (!video.src) {
+                            video.src = video.getAttribute('data-src');
+                            video.load();
+                        }
+                        video.play();
+                        video.muted = false;
+                    } else {
+                        video.pause();
+                    }
+                });
+            }, { threshold: 0.6 });
+            document.querySelectorAll('.reel').forEach(reel => observer.observe(reel));
+        }
 
-    document.querySelectorAll('.reel').forEach(reel => observer.observe(reel));
-}
-
+        function shareVideo(id, text) {
+            const url = `https://t.me/Vireels_bot?start=${id}`;
+            tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${encodeURIComponent(text)}`);
+        }
 
         function handleDoubleTap(element) {
             const heart = document.createElement('div');
-            heart.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px;z-index:60;color:#ffca28;opacity:0;transition:0.4s;pointer-events:none;';
+            heart.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:80px;z-index:10;color:#2563eb;opacity:0;transition:0.3s;pointer-events:none;';
             heart.innerHTML = '💙';
             element.appendChild(heart);
-            setTimeout(() => { heart.style.opacity='1'; heart.style.transform='translate(-50%,-50%) scale(1.3)'; }, 20);
+            setTimeout(() => { heart.style.opacity='1'; heart.style.transform='translate(-50%,-50%) scale(1.2)'; }, 20);
             setTimeout(() => { heart.style.opacity='0'; heart.style.transform='translate(-50%,-50%) scale(1)'; }, 700);
-            setTimeout(() => heart.remove(), 1200);
+            setTimeout(() => heart.remove(), 1000);
         }
     </script>
 </body>
